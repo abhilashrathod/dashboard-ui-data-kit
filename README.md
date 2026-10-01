@@ -2,8 +2,8 @@
 
 A documented React component library for data-heavy dashboards, built and documented in Storybook. Every component sits on a two-layer design token system with light and dark themes, is tested through its stories (interaction and accessibility checks run in CI), and is exercised in a demo dashboard that runs against a Mock Service Worker API, with no backend required.
 
-- **Storybook:** _link coming soon_
-- **Demo dashboard:** _link coming soon_
+- Storybook: <vercel-url>
+- Demo: <vercel-url>
 
 **Status: Stage 0** (scaffold, tokens, MSW, Storybook, CI)
 

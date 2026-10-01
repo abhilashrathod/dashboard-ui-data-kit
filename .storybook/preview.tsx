@@ -20,8 +20,7 @@ export default definePreview({
     addonA11y(),
     addonVitest(),
     // Custom setup: registers the shared `handlers` as initial handlers (they
-    // survive the addon's per-story reset) and resolves the worker script via
-    // BASE_URL so it works under the GitHub Pages subpath.
+    // survive the addon's per-story reset).
     // Override per story with `beforeEach({ msw }) { msw.use(...) }`.
     addonMsw(() => startMockWorker({ quiet: true })),
   ],
