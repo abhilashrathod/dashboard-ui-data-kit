@@ -5,9 +5,40 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import addonMsw from 'msw-storybook-addon'
 import { useState, type ReactNode } from 'react'
 import { startMockWorker } from '@/mocks/browser'
+import { resetDb } from '@/mocks/data/db'
+import {
+  type EndpointKey,
+  NETWORK_MODES,
+  type NetworkMode,
+  resetNetworkConfig,
+  setNetworkConfig,
+} from '@/mocks/network'
 import '@/styles.css'
 
-/** A fresh QueryClient per story (keyed by story id), so cached data never leaks between stories. */
+/**
+ * Per-story network simulation. Wins over the toolbar:
+ *   parameters: { network: { failEndpoints: ['metrics.kpis'] } }
+ */
+export interface NetworkParameter {
+  mode?: NetworkMode
+  failEndpoints?: EndpointKey[]
+}
+
+/**
+ * Stories use a fixed anchor so their numbers and charts look the same every
+ * day (stable visuals and snapshots). The demo app anchors on today instead.
+ */
+const STORY_ANCHOR = new Date('2026-09-30T00:00:00Z')
+
+const isNetworkMode = (value: unknown): value is NetworkMode =>
+  NETWORK_MODES.some((mode) => mode === value)
+
+/**
+ * A fresh QueryClient per mount. The decorator keys this on story id + network
+ * mode, so cached data never leaks between stories, and switching the network
+ * toolbar shows the new state instead of stale data. useState keeps the client
+ * stable across re-renders of the same mount.
+ */
 function StoryQueryProvider({ children }: { children: ReactNode }) {
   const [client] = useState(
     () => new QueryClient({ defaultOptions: { queries: { retry: false } } }),
@@ -25,6 +56,19 @@ export default definePreview({
     addonMsw(() => startMockWorker({ quiet: true })),
   ],
 
+  // Runs before every story render: fresh seeded data, then the network mode
+  // from the toolbar, then the story's own `parameters.network` on top.
+  loaders: [
+    ({ globals, parameters }) => {
+      resetDb({ anchor: STORY_ANCHOR })
+      resetNetworkConfig()
+      if (isNetworkMode(globals.network)) setNetworkConfig({ mode: globals.network })
+      const network = parameters.network as NetworkParameter | undefined
+      if (network) setNetworkConfig(network)
+      return {}
+    },
+  ],
+
   globalTypes: {
     theme: {
       description: 'Color theme',
@@ -38,8 +82,17 @@ export default definePreview({
         dynamicTitle: true,
       },
     },
+    network: {
+      description: 'Simulated network for the mock API',
+      toolbar: {
+        title: 'Network',
+        icon: 'transfer',
+        items: NETWORK_MODES.map((mode) => ({ value: mode, title: mode })),
+        dynamicTitle: true,
+      },
+    },
   },
-  initialGlobals: { theme: 'light' },
+  initialGlobals: { theme: 'light', network: 'normal' },
 
   parameters: {
     layout: 'fullscreen',
@@ -50,8 +103,8 @@ export default definePreview({
   },
 
   decorators: [
-    (Story, { id }) => (
-      <StoryQueryProvider key={id}>
+    (Story, { id, globals }) => (
+      <StoryQueryProvider key={`${id}:${String(globals.network)}`}>
         <Story />
       </StoryQueryProvider>
     ),

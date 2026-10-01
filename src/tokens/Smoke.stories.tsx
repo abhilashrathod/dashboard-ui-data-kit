@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { expect } from 'storybook/test'
 import preview from '../../.storybook/preview'
-import { getJson } from '@/lib/api'
+import * as z from '@/contracts/zod'
+import { apiFetch } from '@/lib/api'
 
 function SurfaceCard() {
   return (
@@ -22,10 +23,12 @@ function SurfaceCard() {
   )
 }
 
+const Health = z.object({ ok: z.boolean() })
+
 function HealthProbe() {
   const health = useQuery({
     queryKey: ['health'],
-    queryFn: () => getJson<{ ok: boolean }>('/api/health'),
+    queryFn: ({ signal }) => apiFetch('/api/health', { schema: Health, signal }),
   })
 
   return (

@@ -2,10 +2,25 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { App } from '@/app/App'
+import { isApiError } from '@/lib/api'
 import { initTheme } from '@/tokens/theme'
 import '@/styles.css'
 
-const queryClient = new QueryClient()
+const MAX_RETRIES = 2
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Retry only failures that can succeed on a second try: no response at
+      // all (status 0) or 503 UNAVAILABLE. Retrying 4xx, 500 or CONTRACT errors
+      // just delays the error state (by ~7s with the default policy).
+      retry: (failureCount, error) =>
+        failureCount < MAX_RETRIES &&
+        isApiError(error) &&
+        (error.status === 0 || error.code === 'UNAVAILABLE'),
+    },
+  },
+})
 
 async function enableMocking(): Promise<void> {
   // The deployed demo has no backend, so production builds opt in with

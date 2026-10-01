@@ -1,5 +1,5 @@
 import { useTheme } from '@/tokens/theme'
-import { HealthCard } from './HealthCard'
+import { OrdersCard } from './OrdersCard'
 
 function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme()
@@ -27,7 +27,7 @@ export function App() {
       </header>
       <main className="mx-auto max-w-6xl px-6 py-8">
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          <HealthCard />
+          <OrdersCard />
         </div>
       </main>
     </div>
