@@ -1,5 +1,5 @@
-import { z } from 'zod'
 import { Channel, OrderStatus } from './order'
+import * as z from './zod'
 
 // ── Schema ───────────────────────────────────────────────────────────────────
 
@@ -22,19 +22,21 @@ const InFilter = z
   .object({
     field: z.enum(['status', 'channel']),
     op: z.literal('in'),
-    value: z.array(z.string()).min(1, { error: 'needs at least one value' }),
+    value: z.array(z.string()).check(z.minLength(1, { error: 'needs at least one value' })),
   })
-  .superRefine((filter, ctx) => {
-    const allowed: readonly string[] = ENUM_BY_FIELD[filter.field].options
-    filter.value.forEach((value, index) => {
-      if (allowed.includes(value)) return
-      ctx.addIssue({
-        code: 'custom',
-        path: ['value', index],
-        message: `"${value}" is not a valid ${filter.field} (expected one of: ${allowed.join(', ')})`,
+  .check(
+    z.superRefine((filter, ctx) => {
+      const allowed: readonly string[] = ENUM_BY_FIELD[filter.field].options
+      filter.value.forEach((value, index) => {
+        if (allowed.includes(value)) return
+        ctx.addIssue({
+          code: 'custom',
+          path: ['value', index],
+          message: `"${value}" is not a valid ${filter.field} (expected one of: ${allowed.join(', ')})`,
+        })
       })
-    })
-  })
+    }),
+  )
 
 const AmountCompareFilter = z.object({
   field: z.literal('amount'),
@@ -52,11 +54,13 @@ const AmountBetweenFilter = z
     op: z.literal('between'),
     value: z.tuple([z.number(), z.number()]),
   })
-  .refine(({ value: [min, max] }) => min <= max, {
-    error: 'min must be <= max',
-    path: ['value'],
-    ...whenValid,
-  })
+  .check(
+    z.refine(({ value: [min, max] }) => min <= max, {
+      error: 'min must be <= max',
+      path: ['value'],
+      ...whenValid,
+    }),
+  )
 
 const isoDate = z.iso.date({
   error: (issue) => `"${String(issue.input)}" is not a valid yyyy-mm-dd date`,
@@ -69,11 +73,13 @@ const CreatedAtBetweenFilter = z
     op: z.literal('between'),
     value: z.tuple([isoDate, isoDate]),
   })
-  .refine(({ value: [from, to] }) => from <= to, {
-    error: 'from must be on or before to',
-    path: ['value'],
-    ...whenValid,
-  })
+  .check(
+    z.refine(({ value: [from, to] }) => from <= to, {
+      error: 'from must be on or before to',
+      path: ['value'],
+      ...whenValid,
+    }),
+  )
 
 /**
  * Discriminated on `op`. Both `between` variants share that op, so they sit
@@ -97,10 +103,10 @@ export const FILTER_OPS = {
 } as const satisfies Record<FilterField, readonly FilterOp[]>
 
 export const ListParams = z.object({
-  page: z.int().min(1),
-  pageSize: z.int().min(1).max(PAGE_SIZE_MAX),
+  page: z.int().check(z.gte(1)),
+  pageSize: z.int().check(z.gte(1), z.lte(PAGE_SIZE_MAX)),
   sort: Sort,
-  q: z.string().trim().max(QUERY_MAX_LENGTH).optional(),
+  q: z.optional(z.string().check(z.trim(), z.maxLength(QUERY_MAX_LENGTH))),
   filters: z.array(Filter),
 })
 export type ListParams = z.infer<typeof ListParams>

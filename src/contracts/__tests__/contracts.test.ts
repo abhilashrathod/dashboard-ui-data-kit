@@ -1,5 +1,5 @@
 import { describe, expect, expectTypeOf, it } from 'vitest'
-import type { z } from 'zod'
+import type * as z from '@/contracts/zod'
 import {
   ApiErrorBody,
   BulkStatusUpdateInput,
@@ -94,5 +94,13 @@ describe('CreateOrderInput', () => {
     expect(result.success).toBe(false)
     // Exactly one issue, at the expected path: the rest of the fixture is valid.
     expect(result.error?.issues.map((issue) => issue.path)).toEqual([expectedPath])
+  })
+
+  it('uses English error messages (zod/mini loads none unless a locale is configured)', () => {
+    const result = CreateOrderInput.safeParse({
+      ...validCreateOrderInput,
+      customer: { ...validCreateOrderInput.customer, email: 'nope' },
+    })
+    expect(result.error?.issues[0]?.message).toBe('Invalid email address')
   })
 })

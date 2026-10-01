@@ -1,12 +1,12 @@
-import { z } from 'zod'
+import * as z from './zod'
 
 /** Paginated list envelope, e.g. `pageSchema(Order)`. Pages are 1-based. */
-export function pageSchema<T extends z.ZodType>(itemSchema: T) {
+export function pageSchema<T extends z.ZodMiniType>(itemSchema: T) {
   return z.object({
     rows: z.array(itemSchema),
-    total: z.int().min(0),
-    page: z.int().min(1),
-    pageSize: z.int().min(1),
+    total: z.int().check(z.gte(0)),
+    page: z.int().check(z.gte(1)),
+    pageSize: z.int().check(z.gte(1)),
   })
 }
 export type Page<T> = { rows: T[]; total: number; page: number; pageSize: number }
@@ -25,11 +25,11 @@ export const ApiErrorBody = z.object({
   code: ApiErrorCode,
   message: z.string(),
   requestId: z.string(),
-  issues: z.array(z.string()).optional(),
+  issues: z.optional(z.array(z.string())),
   /**
    * Keyed by dot-path (e.g. "customer.email") so entries map directly onto
    * React Hook Form field names.
    */
-  fieldErrors: z.record(z.string(), z.array(z.string())).optional(),
+  fieldErrors: z.optional(z.record(z.string(), z.array(z.string()))),
 })
 export type ApiErrorBody = z.infer<typeof ApiErrorBody>

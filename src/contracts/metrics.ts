@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import * as z from './zod'
 
 export const MetricsRange = z.enum(['7d', '30d', '90d'])
 export type MetricsRange = z.infer<typeof MetricsRange>
@@ -23,7 +23,7 @@ export const RevenuePoint = z.object({
   /** yyyy-mm-dd */
   date: z.iso.date(),
   revenue: z.number(),
-  orders: z.int().nonnegative(),
+  orders: z.int().check(z.nonnegative()),
 })
 export type RevenuePoint = z.infer<typeof RevenuePoint>
 
