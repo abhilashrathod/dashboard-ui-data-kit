@@ -1,0 +1,5 @@
+dist
+storybook-static
+coverage
+pnpm-lock.yaml
+public/mockServiceWorker.js

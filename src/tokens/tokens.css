@@ -1,0 +1,127 @@
+/*
+ * Design tokens.
+ *
+ * Two layers:
+ *   1. Palette  (--palette-*)  raw values. Never referenced by components.
+ *   2. Semantic (--color-*, --radius-*, --shadow-*, --font-*)  what UI code
+ *      uses, via the Tailwind mapping in ./tailwind-theme.css.
+ *
+ * Light values live on :root; [data-theme="dark"] overrides the semantic
+ * layer only. The palette is theme-independent.
+ */
+
+:root {
+  /* ── Palette ─────────────────────────────────────────────────────────── */
+  --palette-neutral-0: #ffffff;
+  --palette-neutral-50: #f8fafc;
+  --palette-neutral-100: #f1f5f9;
+  --palette-neutral-200: #e2e8f0;
+  --palette-neutral-300: #cbd5e1;
+  --palette-neutral-400: #94a3b8;
+  --palette-neutral-500: #64748b;
+  --palette-neutral-600: #475569;
+  --palette-neutral-700: #334155;
+  --palette-neutral-800: #1e293b;
+  --palette-neutral-900: #0f172a;
+  --palette-neutral-950: #020617;
+
+  --palette-brand-50: #eef2ff;
+  --palette-brand-100: #e0e7ff;
+  --palette-brand-200: #c7d2fe;
+  --palette-brand-400: #818cf8;
+  --palette-brand-500: #6366f1;
+  --palette-brand-600: #4f46e5;
+  --palette-brand-700: #4338ca;
+  --palette-brand-800: #3730a3;
+
+  --palette-green-50: #f0fdf4;
+  --palette-green-100: #dcfce7;
+  --palette-green-200: #bbf7d0;
+  --palette-green-400: #4ade80;
+  --palette-green-500: #22c55e;
+  --palette-green-600: #16a34a;
+  --palette-green-700: #15803d;
+  --palette-green-800: #166534;
+
+  --palette-amber-50: #fffbeb;
+  --palette-amber-100: #fef3c7;
+  --palette-amber-200: #fde68a;
+  --palette-amber-400: #fbbf24;
+  --palette-amber-500: #f59e0b;
+  --palette-amber-600: #d97706;
+  --palette-amber-700: #b45309;
+  --palette-amber-800: #92400e;
+
+  --palette-red-50: #fef2f2;
+  --palette-red-100: #fee2e2;
+  --palette-red-200: #fecaca;
+  --palette-red-400: #f87171;
+  --palette-red-500: #ef4444;
+  --palette-red-600: #dc2626;
+  --palette-red-700: #b91c1c;
+  --palette-red-800: #991b1b;
+
+  --palette-blue-50: #eff6ff;
+  --palette-blue-100: #dbeafe;
+  --palette-blue-200: #bfdbfe;
+  --palette-blue-400: #60a5fa;
+  --palette-blue-500: #3b82f6;
+  --palette-blue-600: #2563eb;
+  --palette-blue-700: #1d4ed8;
+  --palette-blue-800: #1e40af;
+
+  /* ── Semantic (light) ────────────────────────────────────────────────── */
+  color-scheme: light;
+
+  --color-bg-canvas: var(--palette-neutral-50);
+  --color-bg-surface: var(--palette-neutral-0);
+  --color-bg-muted: var(--palette-neutral-100);
+
+  --color-fg-default: var(--palette-neutral-900);
+  --color-fg-muted: var(--palette-neutral-600);
+
+  --color-border: var(--palette-neutral-200);
+  --color-accent: var(--palette-brand-600);
+
+  --color-status-success: var(--palette-green-700);
+  --color-status-warning: var(--palette-amber-700);
+  --color-status-danger: var(--palette-red-700);
+  --color-status-info: var(--palette-blue-700);
+
+  --color-focus-ring: var(--palette-brand-500);
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  --shadow-sm: 0 1px 2px 0 rgb(15 23 42 / 0.06), 0 1px 3px 0 rgb(15 23 42 / 0.08);
+  --shadow-md: 0 4px 6px -1px rgb(15 23 42 / 0.08), 0 2px 4px -2px rgb(15 23 42 / 0.06);
+
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+[data-theme='dark'] {
+  /* ── Semantic (dark) ─────────────────────────────────────────────────── */
+  color-scheme: dark;
+
+  --color-bg-canvas: var(--palette-neutral-950);
+  --color-bg-surface: var(--palette-neutral-900);
+  --color-bg-muted: var(--palette-neutral-800);
+
+  --color-fg-default: var(--palette-neutral-50);
+  --color-fg-muted: var(--palette-neutral-400);
+
+  --color-border: var(--palette-neutral-700);
+  --color-accent: var(--palette-brand-400);
+
+  --color-status-success: var(--palette-green-400);
+  --color-status-warning: var(--palette-amber-400);
+  --color-status-danger: var(--palette-red-400);
+  --color-status-info: var(--palette-blue-400);
+
+  --color-focus-ring: var(--palette-brand-400);
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.4), 0 1px 3px 0 rgb(0 0 0 / 0.3);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.45), 0 2px 4px -2px rgb(0 0 0 / 0.35);
+}

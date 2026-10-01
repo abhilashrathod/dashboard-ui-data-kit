@@ -1,0 +1,60 @@
+/*
+ * Tailwind theme mapping: exposes ONLY the semantic tokens from tokens.css.
+ *
+ * The default color/radius/shadow/font namespaces are reset, so raw palette
+ * classes such as `bg-red-500` or `text-slate-600` do not exist. Use the
+ * semantic classes instead: `bg-surface`, `text-fg-muted`, `border-border`,
+ * `ring-focus-ring`, `text-danger`, `rounded-md`, `shadow-sm`, `font-sans`.
+ *
+ * `inline` makes utilities emit `var(--color-…)` directly, so they follow
+ * whichever [data-theme] is closest in the DOM (e.g. a single Storybook story).
+ *
+ * `reference` stops Tailwind from also emitting these as variables in
+ * @layer theme. Several keys share their token's name (--color-border,
+ * --radius-md, …), so emitting them would declare cyclic variables such as
+ * `--color-border: var(--color-border)`. tokens.css is the only source of the
+ * variables themselves.
+ */
+
+@theme inline reference {
+  --color-*: initial;
+  --radius-*: initial;
+  --shadow-*: initial;
+  --font-*: initial;
+
+  /* Backgrounds */
+  --color-canvas: var(--color-bg-canvas);
+  --color-surface: var(--color-bg-surface);
+  --color-muted: var(--color-bg-muted);
+
+  /* Foregrounds */
+  --color-fg-default: var(--color-fg-default);
+  --color-fg-muted: var(--color-fg-muted);
+
+  /* Lines, accent, focus */
+  --color-border: var(--color-border);
+  --color-accent: var(--color-accent);
+  --color-focus-ring: var(--color-focus-ring);
+
+  /* Status */
+  --color-success: var(--color-status-success);
+  --color-warning: var(--color-status-warning);
+  --color-danger: var(--color-status-danger);
+  --color-info: var(--color-status-info);
+
+  /* Always-available keywords */
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+
+  --font-sans: var(--font-sans);
+}
+
+/* `dark:` variant follows the data-theme attribute, not the media query. */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));

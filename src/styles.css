@@ -1,0 +1,10 @@
+/* Global stylesheet: imported by the demo app (main.tsx) and Storybook (preview.tsx). */
+@import 'tailwindcss';
+@import './tokens/tokens.css';
+@import './tokens/tailwind-theme.css';
+
+@layer base {
+  body {
+    @apply bg-canvas font-sans text-fg-default antialiased;
+  }
+}
