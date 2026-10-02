@@ -73,6 +73,9 @@ export const CONTRAST_PAIRS: ContrastPair[] = [
   { fg: '--color-accent-solid-fg', bg: '--color-accent-solid', min: 4.5, kind: 'text' },
   { fg: '--color-accent-text', bg: '--color-surface', min: 4.5, kind: 'text' },
   { fg: '--color-accent-subtle-fg', bg: '--color-accent-subtle', min: 4.5, kind: 'text' },
+  // Selected table rows (bg-accent-subtle) keep their normal and muted text.
+  { fg: '--color-fg', bg: '--color-accent-subtle', min: 4.5, kind: 'text' },
+  { fg: '--color-fg-muted', bg: '--color-accent-subtle', min: 4.5, kind: 'text' },
   {
     fg: '--color-accent-gradient-fg',
     bg: '--color-accent-gradient-from',

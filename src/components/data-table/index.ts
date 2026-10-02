@@ -9,6 +9,8 @@ export {
   type DataTableFeatures,
 } from './columns'
 export { DataTable, type DataTableProps } from './DataTable'
+export { DataTableBulkBar, type DataTableBulkBarProps } from './DataTableBulkBar'
+export { DataTableColumnToggle, type DataTableColumnToggleProps } from './DataTableColumnToggle'
 export { DataTableDensityToggle, type DataTableDensityToggleProps } from './DataTableDensityToggle'
 export { DataTableGrid, type DataTableGridProps } from './DataTableGrid'
 export { DataTablePagination, type DataTablePaginationProps } from './DataTablePagination'
@@ -25,6 +27,17 @@ export {
   type PageRange,
   type SortAction,
 } from './model'
+export {
+  emptySelection,
+  pageSelectionState,
+  SELECTION_ANNOUNCE_DELAY_MS,
+  viewKeyOf,
+  type PageSelection,
+  type SelectionState,
+} from './selection'
+export { SELECTION_COLUMN_ID } from './selectionColumn'
+export { columnStorageKey, useColumnVisibility, type ColumnVisibility } from './useColumnVisibility'
+export { useSelection, type DataTableSelection } from './useSelection'
 export {
   useDataTable,
   type DataTableModel,

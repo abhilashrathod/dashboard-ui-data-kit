@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react'
+import { useRef, useState, type ComponentProps, type ReactNode } from 'react'
 import { Button } from '../button'
 import { Dialog } from './Dialog'
 
@@ -16,6 +16,12 @@ export type ConfirmDialogProps = {
    * settles: resolve closes the dialog; reject keeps it open with the error.
    */
   onConfirm: () => void | Promise<void>
+  /**
+   * Where focus goes on close. Radix returns it to the element focused when the
+   * dialog opened; pass this when that element is gone by then (a menu item, when
+   * the dialog was opened from a DropdownMenu): preventDefault, then focus.
+   */
+  onCloseAutoFocus?: ComponentProps<typeof Dialog.Content>['onCloseAutoFocus']
 }
 
 const errorMessage = (error: unknown) =>
@@ -33,6 +39,7 @@ export function ConfirmDialog({
   confirmLabel = 'Confirm',
   tone = 'default',
   onConfirm,
+  onCloseAutoFocus,
 }: ConfirmDialogProps) {
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -68,6 +75,7 @@ export function ConfirmDialog({
         // Without a description, opt out explicitly (Radix warns otherwise).
         {...(description ? {} : { 'aria-describedby': undefined })}
         onInteractOutside={(event) => event.preventDefault()}
+        onCloseAutoFocus={onCloseAutoFocus}
         onOpenAutoFocus={(event) => {
           // Initial focus decides what Enter does. For a destructive action it
           // starts on Cancel, so a reflexive Enter can't delete anything. For a

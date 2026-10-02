@@ -6,6 +6,7 @@ import {
   type Row,
   type RowData,
   type SortingState,
+  type ColumnVisibilityState,
 } from '@tanstack/react-table'
 import { useCallback, useMemo, useState } from 'react'
 import type { Page } from '@/contracts'
@@ -13,6 +14,9 @@ import type { DataState } from '@/lib/data-state'
 import { setPage, setPageSize, type UseListParamsResult } from '@/lib/url-state'
 import { dataTableFeatures, type DataColumnDef, type DataTableFeatures } from './columns'
 import { pageRange, sortingFromParams, sortUpdaterFor } from './model'
+import { selectionColumn } from './selectionColumn'
+import { useColumnVisibility, type ColumnVisibility } from './useColumnVisibility'
+import { useSelection, type DataTableSelection } from './useSelection'
 
 /**
  * What a table renders: URL params plus their DataState. The table never
@@ -32,13 +36,27 @@ export interface UseDataTableOptions<TData extends RowData> {
   columns: readonly DataColumnDef<TData>[]
   source: DataTableSource<TData>
   getRowId: (row: TData) => string
+  /**
+   * Adds the selection column (first) and turns on `table.selection`. The one
+   * switch for selection: <DataTable.BulkBar> doesn't add the column itself.
+   */
+  selectable?: boolean
+  /** Names a row for its checkbox: "order ORD-000123" → "Select order ORD-000123". Default: "{singular label} {id}". */
+  getRowLabel?: (row: TData) => string
 }
 
 export interface DataTableModel<TData extends RowData> extends DataTableSource<TData> {
   id: string
-  /** Escape hatch: the TanStack Table instance (v9). Its sort/page setters write the URL too. */
+  /** Escape hatch: the TanStack Table instance (v9). Its sort/page/visibility setters go through the kit too. */
   instance: ReactTable<DataTableFeatures, TData>
+  /** Every column, including the selection column when selectable. */
   columns: readonly DataColumnDef<TData>[]
+  /** Which columns are shown: the user's stored preference (useColumnVisibility). */
+  columnVisibility: ColumnVisibility
+  /** Always present; stays empty unless `selectable`. */
+  selection: DataTableSelection<TData>
+  selectable: boolean
+  getRowLabel?: (row: TData) => string
   /** The ready page's rows; [] in every other state. */
   rows: Row<DataTableFeatures, TData>[]
   /** Rows matching the params; the last known value while a new key loads. */
@@ -57,14 +75,26 @@ const NO_ROWS: never[] = []
  */
 export function useDataTable<TData extends RowData>({
   id,
-  columns,
+  columns: dataColumns,
   source,
   getRowId,
+  selectable = false,
+  getRowLabel,
 }: UseDataTableOptions<TData>): DataTableModel<TData> {
   const { params, setParams, resetParams, dataState } = source
 
+  const columns = useMemo(
+    () => (selectable ? [selectionColumn as DataColumnDef<TData>, ...dataColumns] : dataColumns),
+    [selectable, dataColumns],
+  )
+
   const page = dataState.status === 'ready' ? dataState.data : undefined
   const data: TData[] = page?.rows ?? NO_ROWS
+  // Placeholder rows belong to the previous key (maybe another view): not selectable.
+  const selectableRows =
+    selectable && dataState.status === 'ready' && !dataState.isPlaceholder ? data : NO_ROWS
+  const selection = useSelection(params, selectableRows, getRowId)
+  const columnVisibility = useColumnVisibility(id, columns)
 
   // The last total we saw, kept while a new key has no data yet (loading, an
   // error), so the page count doesn't flicker. Derived state, set during render.
@@ -96,6 +126,13 @@ export function useDataTable<TData extends RowData>({
     [pagination, setParams],
   )
 
+  const { apply: applyVisibility, state: visibilityState } = columnVisibility
+  const onColumnVisibilityChange = useCallback<OnChangeFn<ColumnVisibilityState>>(
+    (updater) =>
+      applyVisibility(typeof updater === 'function' ? updater(visibilityState) : updater),
+    [applyVisibility, visibilityState],
+  )
+
   // useTable builds the core table once and updates its options each render;
   // `features`, `columns` and `data` keep their identity unless they change.
   const instance = useTable<DataTableFeatures, TData>({
@@ -103,9 +140,10 @@ export function useDataTable<TData extends RowData>({
     columns,
     data,
     getRowId,
-    state: { sorting, pagination },
+    state: { sorting, pagination, columnVisibility: visibilityState },
     onSortingChange,
     onPaginationChange,
+    onColumnVisibilityChange,
     // The server sorts and pages; TanStack only lays out what it's given.
     manualSorting: true,
     manualPagination: true,
@@ -123,6 +161,10 @@ export function useDataTable<TData extends RowData>({
     resetParams,
     dataState,
     columns,
+    columnVisibility,
+    selection,
+    selectable,
+    getRowLabel,
     rows: instance.getRowModel().rows,
     total,
     pageCount,

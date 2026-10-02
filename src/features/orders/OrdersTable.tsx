@@ -1,5 +1,7 @@
 import { DataTable, useDataTable } from '@/components'
 import { useOrdersTableData } from '@/lib/query'
+import { BulkDetailsProvider } from './BulkDetailsProvider'
+import { BulkStatusAction } from './BulkStatusAction'
 import { getOrderRowId, orderColumns } from './orderColumns'
 
 export interface OrdersTableProps {
@@ -20,16 +22,23 @@ export function OrdersTable({ namespace = 'orders', gridClassName }: OrdersTable
     columns: orderColumns,
     source,
     getRowId: getOrderRowId,
+    selectable: true,
   })
 
   return (
-    <DataTable table={table} aria-label="Orders">
-      <DataTable.Toolbar>
-        <DataTable.Search />
-        <DataTable.DensityToggle slot="end" />
-      </DataTable.Toolbar>
-      <DataTable.Grid className={gridClassName} />
-      <DataTable.Pagination />
-    </DataTable>
+    <BulkDetailsProvider>
+      <DataTable table={table} aria-label="Orders">
+        <DataTable.Toolbar>
+          <DataTable.Search />
+          <DataTable.ColumnToggle slot="end" />
+          <DataTable.DensityToggle slot="end" />
+        </DataTable.Toolbar>
+        <DataTable.Grid className={gridClassName} />
+        <DataTable.Pagination />
+        <DataTable.BulkBar>
+          {(selection) => <BulkStatusAction selection={selection} />}
+        </DataTable.BulkBar>
+      </DataTable>
+    </BulkDetailsProvider>
   )
 }

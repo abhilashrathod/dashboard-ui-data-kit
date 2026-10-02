@@ -44,10 +44,15 @@ export const CreateOrderInput = z.object({
 })
 export type CreateOrderInput = z.infer<typeof CreateOrderInput>
 
+/** The most ids one bulk status request accepts. */
+export const BULK_STATUS_MAX_IDS = 500
+
 export const BulkStatusUpdateInput = z.object({
   // Plain strings, not the ORD-###### pattern: an unknown or malformed id is
   // reported per-item in `failed` instead of rejecting the whole request.
-  ids: z.array(z.string().check(z.minLength(1))).check(z.minLength(1), z.maxLength(500)),
+  ids: z
+    .array(z.string().check(z.minLength(1)))
+    .check(z.minLength(1), z.maxLength(BULK_STATUS_MAX_IDS)),
   status: OrderStatus,
 })
 export type BulkStatusUpdateInput = z.infer<typeof BulkStatusUpdateInput>

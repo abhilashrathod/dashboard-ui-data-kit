@@ -1,4 +1,5 @@
 import {
+  columnVisibilityFeature,
   createColumnHelper as createTanstackColumnHelper,
   rowPaginationFeature,
   rowSortingFeature,
@@ -20,10 +21,16 @@ import type { SortField } from '@/contracts'
 
 /**
  * The TanStack features every DataTable registers (v9 makes them explicit).
- * Only the slices the table drives from the URL: no client row models, since
- * the server sorts and pages (see useDataTable).
+ * Sorting and pagination are driven from the URL, visibility from the user's
+ * stored preference. No client row models: the server sorts and pages (see
+ * useDataTable). Selection is the kit's own model (selection.ts), not
+ * rowSelectionFeature, because it keeps row snapshots across pages.
  */
-export const dataTableFeatures = tableFeatures({ rowSortingFeature, rowPaginationFeature })
+export const dataTableFeatures = tableFeatures({
+  rowSortingFeature,
+  rowPaginationFeature,
+  columnVisibilityFeature,
+})
 export type DataTableFeatures = typeof dataTableFeatures
 
 /**
@@ -48,10 +55,14 @@ export interface DataColumnMeta {
   width?: DataColumnWidth
   /** The API sort field this column sorts by. Absent: not sortable. */
   sortField?: SortField
-  /** Can the user hide it (4b)? Default true. */
+  /** Can the user hide it with DataTable.ColumnToggle? Default true. */
   hideable?: boolean
+  /**
+   * CSV export (4c). `false` leaves the column out (the selection column).
+   * Placeholder: 4c widens it to an object (header, value) for exported columns.
+   */
+  csv?: false
   // filter?: DataColumnFilter  (Stage 6: the filter UI and how it maps onto a FilterField)
-  // csv?: { header?: string; value?: (row) => string | number }  (Stage 4c: export)
 }
 
 /* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-object-type --

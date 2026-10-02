@@ -11,10 +11,11 @@ import { useDataTable, type DataTableModel } from '../useDataTable'
 
 export function readyPage(total: number, pageSize = 50, page = 1): DataState<Page<Order>> {
   const count = Math.max(0, Math.min(pageSize, total - (page - 1) * pageSize))
+  const first = (page - 1) * pageSize
   const rows = Array.from({ length: count }, (_, index) =>
     makeOrder({
-      id: `ORD-${String(index + 1).padStart(6, '0')}`,
-      customer: { name: `Customer ${index + 1}` },
+      id: `ORD-${String(first + index + 1).padStart(6, '0')}`,
+      customer: { name: `Customer ${first + index + 1}` },
     }),
   )
   return {
@@ -34,7 +35,12 @@ export function readyPage(total: number, pageSize = 50, page = 1): DataState<Pag
 export function TableHarness({
   dataState,
   onTable,
+  selectable = false,
+  children,
 }: {
+  selectable?: boolean
+  /** Extra parts after the pagination (e.g. a BulkBar). */
+  children?: ReactNode
   dataState:
     | DataState<Page<Order>>
     | ((params: ReturnType<typeof useListParams>['params']) => DataState<Page<Order>>)
@@ -47,15 +53,18 @@ export function TableHarness({
     columns: orderColumns,
     source: { ...list, dataState: state },
     getRowId: getOrderRowId,
+    selectable,
   })
   onTable?.(table)
   return (
     <DataTable table={table} aria-label="Orders">
       <DataTable.Toolbar>
         <DataTable.Search />
+        <DataTable.ColumnToggle slot="end" />
       </DataTable.Toolbar>
       <DataTable.Grid />
       <DataTable.Pagination />
+      {children}
     </DataTable>
   )
 }
@@ -69,5 +78,9 @@ export function ParamsOnlyTable({ children }: { children: ReactNode }) {
     setParams,
     resetParams,
   } as unknown as DataTableModel<RowData>
-  return <DataTableContext value={{ table, label: 'Orders' }}>{children}</DataTableContext>
+  return (
+    <DataTableContext value={{ table, label: 'Orders', hasBulkBar: false }}>
+      {children}
+    </DataTableContext>
+  )
 }

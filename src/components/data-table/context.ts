@@ -7,6 +7,8 @@ export interface DataTableContextValue {
   table: DataTableModel<RowData>
   /** The table's accessible name ("Orders"). */
   label: string
+  /** A <DataTable.BulkBar> is among the root's children (the grid leaves room for it). */
+  hasBulkBar: boolean
 }
 
 export const DataTableContext = createContext<DataTableContextValue | null>(null)

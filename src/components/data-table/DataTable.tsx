@@ -1,7 +1,9 @@
-import { useMemo, type ReactNode } from 'react'
+import { Children, isValidElement, useMemo, type ReactNode } from 'react'
 import type { RowData } from '@tanstack/react-table'
 import { Card } from '../card'
 import { DataTableContext } from './context'
+import { DataTableBulkBar } from './DataTableBulkBar'
+import { DataTableColumnToggle } from './DataTableColumnToggle'
 import { DataTableDensityToggle } from './DataTableDensityToggle'
 import { DataTableGrid } from './DataTableGrid'
 import { DataTablePagination } from './DataTablePagination'
@@ -35,6 +37,7 @@ export interface DataTableProps<TData extends RowData> {
  *     </DataTable.Toolbar>
  *     <DataTable.Grid />
  *     <DataTable.Pagination />
+ *     <DataTable.BulkBar>{(selection) => <Actions selection={selection} />}</DataTable.BulkBar>
  *   </DataTable>
  */
 export function DataTable<TData extends RowData>({
@@ -42,10 +45,14 @@ export function DataTable<TData extends RowData>({
   'aria-label': label,
   children,
 }: DataTableProps<TData>) {
+  // Direct children only, like the toolbar's slot="end": the bar is a part of the table.
+  const hasBulkBar = Children.toArray(children).some(
+    (child) => isValidElement(child) && child.type === DataTableBulkBar,
+  )
   const context = useMemo(
     // Erase the row type: the parts never touch row data, only the column defs do.
-    () => ({ table: table as unknown as DataTableModel<RowData>, label }),
-    [table, label],
+    () => ({ table: table as unknown as DataTableModel<RowData>, label, hasBulkBar }),
+    [table, label, hasBulkBar],
   )
   return (
     <DataTableContext value={context}>
@@ -57,6 +64,8 @@ export function DataTable<TData extends RowData>({
 }
 
 DataTable.Toolbar = DataTableToolbar
+DataTable.ColumnToggle = DataTableColumnToggle
+DataTable.BulkBar = DataTableBulkBar
 DataTable.Search = DataTableSearch
 DataTable.DensityToggle = DataTableDensityToggle
 DataTable.Grid = DataTableGrid

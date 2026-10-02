@@ -1,7 +1,9 @@
 import { expect, waitFor, within } from 'storybook/test'
 import preview, { type NetworkParameter, storyUrl } from '../../../.storybook/preview'
+import { openOverlayA11y } from '@/dev/a11y'
 import { DataTableDemo } from '@/dev/data-table-demo/DataTableDemo'
 import { setNetworkConfig } from '@/mocks/network'
+import { columnStorageKey } from './useColumnVisibility'
 
 /*
  * Data/DataTable: the Orders table end to end (URL → query → DataState →
@@ -13,6 +15,10 @@ const meta = preview.meta({
   title: 'Data/DataTable',
   component: DataTableDemo,
   tags: ['autodocs'],
+  // Column preferences live in localStorage: start every story from the defaults.
+  beforeEach: () => {
+    window.localStorage.removeItem(columnStorageKey('orders'))
+  },
   parameters: {
     docs: {
       description: {
@@ -252,5 +258,252 @@ export const Narrow = meta.story({
     await waitFor(() =>
       expect(head.getBoundingClientRect().top).toBeCloseTo(scroller.getBoundingClientRect().top, 0),
     )
+  },
+})
+
+// ── 4b: selection, bulk actions, column visibility ──────────────────────────
+
+const rowBoxes = () => body().getAllByRole('checkbox', { name: /^Select order/ })
+const pageBox = () => body().getByRole('checkbox', { name: 'Select all orders on this page' })
+/** `hidden`: while a modal (dialog, menu) is open, Radix hides the page from the a11y tree. */
+const bulkBar = (hidden = false) =>
+  body().queryByRole('region', { name: 'Orders selection', hidden })
+const menuClosed = () => waitFor(() => expect(body().queryByRole('menu')).toBeNull())
+const statusOf = (box: HTMLElement) =>
+  box.closest('tr')!.querySelector('[data-status]')!.getAttribute('data-status')
+
+/**
+ * The selection rules, in a real browser: the header checkbox, shift+click
+ * ranges, persistence across pages, clearing on a new sort, and Escape in the
+ * bulk bar.
+ */
+export const SelectionRules = meta.story({
+  play: async ({ canvas, userEvent, step }) => {
+    await settled()
+
+    await step('Header checkbox: the whole page, then mixed after one is removed', async () => {
+      await userEvent.click(pageBox())
+      await expect(bulkBar()).toHaveTextContent('50 selected')
+      await userEvent.click(rowBoxes()[4]!)
+      await expect(pageBox()).toBePartiallyChecked()
+      await expect(bulkBar()).toHaveTextContent('49 selected')
+      await userEvent.click(pageBox()) // some → all
+      await userEvent.click(pageBox()) // all → none
+      await expect(bulkBar()).toBeNull()
+    })
+
+    await step('Shift+click selects the range in between', async () => {
+      await userEvent.click(rowBoxes()[1]!)
+      await userEvent.keyboard('{Shift>}')
+      await userEvent.click(rowBoxes()[5]!)
+      await userEvent.keyboard('{/Shift}')
+      const checked = rowBoxes().map((box) => (box as HTMLInputElement).checked)
+      await expect(checked.slice(0, 7)).toEqual([false, true, true, true, true, true, false])
+      await expect(bulkBar()).toHaveTextContent('5 selected')
+    })
+
+    await step('Persists to page 2 and back', async () => {
+      await userEvent.click(canvas.getByRole('button', { name: 'Next page' }))
+      await settled()
+      await userEvent.click(rowBoxes()[0]!)
+      await expect(bulkBar()).toHaveTextContent('6 selected')
+      await userEvent.click(canvas.getByRole('button', { name: 'Previous page' }))
+      await settled()
+      await expect(rowBoxes()[1]).toBeChecked()
+      await expect(bulkBar()).toHaveTextContent('6 selected')
+    })
+
+    await step('A new sort clears it, and says so', async () => {
+      await userEvent.click(canvas.getByRole('button', { name: 'Amount, sort descending' }))
+      await expect(bulkBar()).toBeNull()
+      await settled()
+      await waitFor(() => expect(announcer()).toHaveTextContent(/Selection cleared/), TIMEOUT)
+    })
+
+    await step('Escape inside the bulk bar clears the selection', async () => {
+      await userEvent.click(rowBoxes()[0]!)
+      const clear = within(bulkBar()!).getByRole('button', { name: 'Clear' })
+      clear.focus()
+      await userEvent.keyboard('{Escape}')
+      await expect(bulkBar()).toBeNull()
+      await expect(body().getByRole('region', { name: 'Orders' })).toHaveFocus()
+    })
+  },
+})
+
+/** Rows picked on two pages: the bar counts both, the rows show the accent tint and bar. */
+export const WithSelection = meta.story({
+  play: async ({ canvas, userEvent }) => {
+    await settled()
+    await userEvent.click(rowBoxes()[0]!)
+    await userEvent.keyboard('{Shift>}')
+    await userEvent.click(rowBoxes()[2]!)
+    await userEvent.keyboard('{/Shift}')
+    await userEvent.click(canvas.getByRole('button', { name: 'Next page' }))
+    await settled()
+    await userEvent.click(rowBoxes()[1]!)
+    await userEvent.click(rowBoxes()[3]!)
+    await userEvent.click(canvas.getByRole('button', { name: 'Previous page' }))
+    await settled()
+    await expect(bulkBar()).toHaveTextContent('5 selected')
+  },
+})
+
+/** The same, in dark + compact: the bar inverts to a light pill. */
+export const WithSelectionDarkCompact = meta.story({
+  globals: { theme: 'dark', density: 'compact' },
+  play: WithSelection.input.play,
+})
+
+/**
+ * "Mark as shipped" on the first 8 rows, which mix paid (allowed) with
+ * shipped, pending and failed (not allowed). The server updates the paid ones
+ * and rejects the rest: the toast says so, "View details" lists the reasons,
+ * and only the rejected rows stay selected.
+ */
+export const BulkPartialSuccess = meta.story({
+  parameters: openOverlayA11y,
+  play: async ({ userEvent, step }) => {
+    await settled()
+    const before = rowBoxes().slice(0, 8).map(statusOf)
+    await expect(before).toContain('paid')
+    await expect(before.some((status) => status !== 'paid')).toBe(true)
+
+    await step('Select rows 1–8 and mark them as shipped', async () => {
+      await userEvent.click(rowBoxes()[0]!)
+      await userEvent.keyboard('{Shift>}')
+      await userEvent.click(rowBoxes()[7]!)
+      await userEvent.keyboard('{/Shift}')
+      await userEvent.click(within(bulkBar()!).getByRole('button', { name: 'Mark as…' }))
+      await userEvent.click(await body().findByRole('menuitem', { name: 'Shipped' }))
+      const dialog = await body().findByRole('alertdialog', { name: 'Mark 8 orders as shipped?' })
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Mark as shipped' }))
+      await waitFor(() => expect(body().queryByRole('alertdialog')).toBeNull(), TIMEOUT)
+    })
+
+    const paid = before.filter((status) => status === 'paid').length
+    await step('The toast reports the partial result', async () => {
+      const toast = await body().findByText(/updated, \d+ couldn't be changed/, {}, TIMEOUT)
+      await expect(toast).toHaveTextContent(`${paid} updated, ${8 - paid} couldn't be changed`)
+    })
+
+    await step('Only the rows that failed stay selected', async () => {
+      await settled()
+      await waitFor(async () => {
+        const checked = rowBoxes()
+          .slice(0, 8)
+          .map((box) => (box as HTMLInputElement).checked)
+        await expect(checked).toEqual(before.map((status) => status !== 'paid'))
+      }, TIMEOUT)
+      await expect(bulkBar()).toHaveTextContent(`${8 - paid} selected`)
+    })
+
+    await step('View details lists the server reasons', async () => {
+      await userEvent.click(body().getByRole('button', { name: 'View details' }))
+      const details = await body().findByRole('dialog', { name: "Orders that couldn't be changed" })
+      await expect(within(details).getAllByRole('row')).toHaveLength(1 + 8 - paid)
+      await expect(details).toHaveTextContent(/Can't move \w+ → shipped/)
+    })
+  },
+})
+
+/** The bulk endpoint fails: the error shows inside the dialog, which stays open; nothing is deselected. */
+export const BulkServerError = meta.story({
+  parameters: {
+    network: { failEndpoints: ['orders.bulkStatus'] } satisfies NetworkParameter,
+    ...openOverlayA11y,
+  },
+  play: async ({ userEvent }) => {
+    await settled()
+    await userEvent.click(rowBoxes()[0]!)
+    await userEvent.click(rowBoxes()[1]!)
+    await userEvent.click(within(bulkBar()!).getByRole('button', { name: 'Mark as…' }))
+    await userEvent.click(await body().findByRole('menuitem', { name: 'Paid' }))
+    const dialog = await body().findByRole('alertdialog', { name: 'Mark 2 orders as paid?' })
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Mark as paid' }))
+
+    await expect(await within(dialog).findByRole('alert', {}, TIMEOUT)).toHaveTextContent(
+      'Something went wrong on our side',
+    )
+    await expect(dialog).toBeVisible()
+    await expect(bulkBar(true)).toHaveTextContent('2 selected')
+  },
+})
+
+/** The same failure, in dark mode (the dialog and the inverted bar). */
+export const BulkServerErrorDark = meta.story({
+  globals: { theme: 'dark' },
+  parameters: BulkServerError.input.parameters,
+  play: BulkServerError.input.play,
+})
+
+const columnItem = (name: string) => body().getByRole('menuitemcheckbox', { name })
+const columnHeaders = () =>
+  within(table())
+    .getAllByRole('columnheader')
+    .map((th) => th.textContent)
+
+/**
+ * Hide Channel and Items from the menu (it stays open between toggles), then
+ * remount the table as a reload would: still hidden. Reset restores them, and
+ * the last visible column can't be hidden.
+ */
+export const ColumnsCustomized = meta.story({
+  parameters: openOverlayA11y,
+  play: async ({ canvas, userEvent, step }) => {
+    await settled()
+    const openMenu = async () => {
+      await userEvent.click(canvas.getByRole('button', { name: 'Columns' }))
+      return body().findByRole('menu')
+    }
+
+    await step('Hide Channel and Items; the menu stays open', async () => {
+      await openMenu()
+      await userEvent.click(columnItem('Channel'))
+      await expect(columnItem('Items')).toBeVisible() // still open
+      await userEvent.click(columnItem('Items'))
+      await expect(columnItem('Channel')).not.toBeChecked()
+      await userEvent.keyboard('{Escape}')
+      await menuClosed()
+      await expect(columnHeaders()).not.toContain('Channel')
+      await expect(columnHeaders()).not.toContain('Items')
+    })
+
+    await step('After a remount (a reload), they are still hidden', async () => {
+      await userEvent.click(body().getByRole('button', { name: 'Remount table' }))
+      await settled()
+      await expect(columnHeaders()).not.toContain('Channel')
+      await expect(columnHeaders()).not.toContain('Items')
+    })
+
+    await step('Reset to default restores them', async () => {
+      await openMenu()
+      await userEvent.click(body().getByRole('menuitem', { name: 'Reset to default' }))
+      await menuClosed()
+      await expect(columnHeaders()).toContain('Channel')
+      await expect(columnHeaders()).toContain('Items')
+    })
+
+    await step('The last visible column cannot be hidden', async () => {
+      await openMenu()
+      for (const name of ['Order', 'Customer', 'Status', 'Channel', 'Items', 'Amount']) {
+        await userEvent.click(columnItem(name))
+      }
+      await expect(columnItem('Created')).toBeChecked()
+      await expect(columnItem('Created')).toHaveAttribute('aria-disabled', 'true')
+      // The menu is left open, so the a11y check covers it.
+    })
+  },
+})
+
+/** The column menu open, in dark + compact. */
+export const ColumnsMenuDarkCompact = meta.story({
+  globals: { theme: 'dark', density: 'compact' },
+  parameters: openOverlayA11y,
+  play: async ({ canvas, userEvent }) => {
+    await settled()
+    await userEvent.click(canvas.getByRole('button', { name: 'Columns' }))
+    const menu = await body().findByRole('menu')
+    await waitFor(() => expect(menu).toBeVisible()) // after the enter animation
   },
 })
