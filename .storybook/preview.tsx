@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import addonMsw from 'msw-storybook-addon'
 import { useLayoutEffect, useState, type ReactNode } from 'react'
 import { KitProvider } from '@/components'
+import { createMemoryAdapter, type MemoryUrlAdapter, UrlStateProvider } from '@/lib/url-state'
 import { startMockWorker } from '@/mocks/browser'
 import { resetDb } from '@/mocks/data/db'
 import {
@@ -25,6 +26,18 @@ import '@/styles.css'
 export interface NetworkParameter {
   mode?: NetworkMode
   failEndpoints?: EndpointKey[]
+}
+
+/**
+ * Each story render gets its own in-memory URL history, starting at
+ * `parameters.url` (e.g. '?orders.page=3&orders.sort=-amount') or ''.
+ * This returns that adapter, for play functions:
+ *   play: async ({ loaded }) => { const url = storyUrl(loaded); expect(url.entries)… }
+ */
+export function storyUrl(loaded: Record<string, unknown>): MemoryUrlAdapter {
+  const adapter = loaded.urlAdapter as MemoryUrlAdapter | undefined
+  if (!adapter) throw new Error('No URL adapter: is the preview loader missing?')
+  return adapter
 }
 
 /**
@@ -97,6 +110,11 @@ export default definePreview({
       if (network) setNetworkConfig(network)
       return {}
     },
+    // A fresh in-memory URL per story render, so the iframe's real URL is never
+    // touched and play functions can assert on history entries (storyUrl).
+    ({ parameters }) => ({
+      urlAdapter: createMemoryAdapter(typeof parameters.url === 'string' ? parameters.url : ''),
+    }),
   ],
 
   globalTypes: {
@@ -145,13 +163,15 @@ export default definePreview({
   },
 
   decorators: [
-    // Fresh query cache and kit state (toasts, announcer) per story.
-    (Story, { id, globals }) => (
-      <StoryQueryProvider key={`${id}:${String(globals.network)}`}>
-        <KitProvider>
-          <Story />
-        </KitProvider>
-      </StoryQueryProvider>
+    // Fresh query cache, URL and kit state (toasts, announcer) per story.
+    (Story, { id, globals, loaded }) => (
+      <UrlStateProvider adapter={storyUrl(loaded)}>
+        <StoryQueryProvider key={`${id}:${String(globals.network)}`}>
+          <KitProvider>
+            <Story />
+          </KitProvider>
+        </StoryQueryProvider>
+      </UrlStateProvider>
     ),
     (Story, { id, globals }) => (
       <DocumentGlobals

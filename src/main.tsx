@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import { App } from '@/app/App'
 import { KitProvider } from '@/components'
 import { isApiError } from '@/lib/api'
+import { UrlStateProvider } from '@/lib/url-state'
 import { initDensity } from '@/tokens/density'
 import { initTheme } from '@/tokens/theme'
 import '@fontsource-variable/geist/wght.css'
@@ -42,11 +43,13 @@ void enableMocking().then(() => {
 
   createRoot(root).render(
     <StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <KitProvider>
-          <App />
-        </KitProvider>
-      </QueryClientProvider>
+      <UrlStateProvider>
+        <QueryClientProvider client={queryClient}>
+          <KitProvider>
+            <App />
+          </KitProvider>
+        </QueryClientProvider>
+      </UrlStateProvider>
     </StrictMode>,
   )
 })
