@@ -19,6 +19,7 @@ export const TOKEN_GROUPS = [
   'Typography',
   'Density',
   'Motion',
+  'Layer',
 ] as const
 
 export type TokenGroup = (typeof TOKEN_GROUPS)[number]
@@ -324,6 +325,21 @@ export const TOKENS: Token[] = [
       usage: 'duration-(--duration-base)',
     },
     { name: '--ease-standard', description: 'Default easing curve.', usage: 'ease-standard' },
+  ]),
+
+  ...shared('Layer', [
+    {
+      name: '--z-overlay',
+      description: 'Modal backdrop (dialog, drawer).',
+      usage: 'z-(--z-overlay)',
+    },
+    { name: '--z-modal', description: 'Dialog and drawer panels.', usage: 'z-(--z-modal)' },
+    {
+      name: '--z-dropdown',
+      description: 'Popovers, menus, selects, tooltips. Above modals: they open from inside them.',
+      usage: 'z-(--z-dropdown)',
+    },
+    { name: '--z-toast', description: 'Toast viewport, above everything.', usage: 'z-(--z-toast)' },
   ]),
 ]
 

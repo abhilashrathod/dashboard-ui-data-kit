@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { App } from '@/app/App'
+import { KitProvider } from '@/components'
 import { isApiError } from '@/lib/api'
 import { initDensity } from '@/tokens/density'
 import { initTheme } from '@/tokens/theme'
@@ -42,7 +43,9 @@ void enableMocking().then(() => {
   createRoot(root).render(
     <StrictMode>
       <QueryClientProvider client={queryClient}>
-        <App />
+        <KitProvider>
+          <App />
+        </KitProvider>
       </QueryClientProvider>
     </StrictMode>,
   )

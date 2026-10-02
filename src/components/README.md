@@ -15,5 +15,8 @@ Conventions: [docs/component-conventions.md](../../docs/component-conventions.md
 - Inputs: `Input`, `SearchInput`, `Checkbox`
 - Display: `Badge`, `StatusPill`, `DeltaChip`, `Amount`, `Card`
 - Feedback: `Spinner`, `Skeleton`, `SkeletonText`, `VisuallyHidden`
+- Overlays (Radix): `Popover`, `DropdownMenu`, `Select`, `Dialog`, `ConfirmDialog`, `Drawer`, `Tooltip`, `TruncatedText`
+- App-wide: `KitProvider` (render once at the root), `useToast()`, `useAnnounce()`
+- `overlay/styles.ts`: the shared panel, motion, backdrop and menu-row styles
 
-Radix-based primitives (menus, dialogs, popovers, switch) arrive in Stage 2c. The data table, filters, charts and forms come later.
+The data table, filters, charts and forms come later.

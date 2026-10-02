@@ -5,3 +5,4 @@ Developer-only tools and stories (Storybook's "Dev/" section). Not part of the k
 - `MockApiExplorer`: calls the mock API by hand and shows status, timing, request id and the response. Combine it with the Network toolbar to see every failure mode.
 - `LookAndFeel.stories.tsx`: Foundations/Look & Feel, a static mock of the visual language used as a reference for later stages. Not kit code.
 - `StoryMatrix`: a story wrapper that renders its children in light/dark × comfortable/compact, so each "All variants" story is axe-checked in all four.
+- `a11y.ts`: `openOverlayA11y`, story parameters for overlays rendered open. They exclude only the page Radix hid behind a modal (see the comment there for why).

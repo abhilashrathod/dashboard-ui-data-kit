@@ -4,7 +4,8 @@ import addonVitest from '@storybook/addon-vitest'
 import { definePreview } from '@storybook/react-vite'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import addonMsw from 'msw-storybook-addon'
-import { useState, type ReactNode } from 'react'
+import { useLayoutEffect, useState, type ReactNode } from 'react'
+import { KitProvider } from '@/components'
 import { startMockWorker } from '@/mocks/browser'
 import { resetDb } from '@/mocks/data/db'
 import {
@@ -46,6 +47,32 @@ function StoryQueryProvider({ children }: { children: ReactNode }) {
     () => new QueryClient({ defaultOptions: { queries: { retry: false } } }),
   )
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>
+}
+
+/**
+ * Theme and density go on <html>, not on the story wrapper: overlays (dialogs,
+ * menus, toasts) portal to document.body, outside any wrapper, and must still
+ * follow the toolbar. Cleared when the story (or the globals) change.
+ */
+function DocumentGlobals({
+  theme,
+  density,
+  children,
+}: {
+  theme: 'light' | 'dark'
+  density: 'comfortable' | 'compact'
+  children: ReactNode
+}) {
+  useLayoutEffect(() => {
+    const root = document.documentElement
+    root.dataset.theme = theme
+    root.dataset.density = density
+    return () => {
+      delete root.dataset.theme
+      delete root.dataset.density
+    }
+  }, [theme, density])
+  return children
 }
 
 export default definePreview({
@@ -118,19 +145,24 @@ export default definePreview({
   },
 
   decorators: [
+    // Fresh query cache and kit state (toasts, announcer) per story.
     (Story, { id, globals }) => (
       <StoryQueryProvider key={`${id}:${String(globals.network)}`}>
-        <Story />
+        <KitProvider>
+          <Story />
+        </KitProvider>
       </StoryQueryProvider>
     ),
-    (Story, { globals }) => (
-      <div
-        data-theme={globals.theme === 'dark' ? 'dark' : 'light'}
-        data-density={globals.density === 'compact' ? 'compact' : 'comfortable'}
-        className="min-h-screen bg-canvas p-6 font-sans text-base text-fg"
+    (Story, { id, globals }) => (
+      <DocumentGlobals
+        key={id}
+        theme={globals.theme === 'dark' ? 'dark' : 'light'}
+        density={globals.density === 'compact' ? 'compact' : 'comfortable'}
       >
-        <Story />
-      </div>
+        <div className="min-h-screen bg-canvas p-6 font-sans text-base text-fg">
+          <Story />
+        </div>
+      </DocumentGlobals>
     ),
   ],
 })

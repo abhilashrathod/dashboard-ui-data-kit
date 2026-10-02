@@ -38,11 +38,22 @@ Rules every component in `src/components` follows. `Button` is the reference imp
 - **Motion uses the motion tokens** and respects `prefers-reduced-motion`.
 - **Text inputs are identified by their label, placeholder and adornments**, not by a ≥3:1 boundary. At rest, the pill is a tone step (surface-subtle). Every `Input` must have a visible label or an `aria-label`, plus a placeholder or icon. This is a deliberate reading of WCAG 1.4.11. If an audit disagrees, switch the resting border to `border-fg-subtle` (3:1).
 
+## Overlays (Radix)
+
+- **Radix comes from the unified `radix-ui` package** (`import { Dialog } from 'radix-ui'`), as its docs recommend. Wrappers stay thin: style the primitive, set sensible defaults, and pass every other prop through.
+- **Shared styles live in `src/components/overlay/styles.ts`**: the panel (surface, radius, overlay shadow, a border in dark mode only), enter/exit motion keyed on Radix's `data-state` / `data-side`, the backdrop, and menu rows. Use them; don't restyle a panel locally.
+- **Theme and density come from `<html>`.** Overlays portal to `document.body`, outside any themed wrapper, so `data-theme` and `data-density` must be on `document.documentElement`. The app's theme and density utilities and the Storybook decorators both put them there. A themed wrapper (`StoryMatrix`) styles inline content only.
+- **Layers**: `z-(--z-overlay)` < `z-(--z-modal)` < `z-(--z-dropdown)` < `z-(--z-toast)`. Menus, selects and tooltips sit above modals because they can open from inside one.
+- **Dialogs and drawers need a title.** Radix logs a console error in development without one, and the unit test setup fails on it. Focus is trapped, Escape closes, and focus returns to the trigger.
+- **App-wide pieces** (tooltip delay, toast store and viewport, announcer) come from `KitProvider`, rendered once at the root.
+- **The package declares `"sideEffects": ["*.css"]`**, so importing from the barrel never bundles components you don't use. Static parts such as `Select.Root = …` are module side effects, and the bundler would otherwise keep them.
+
 ## Stories and tests
 
 - **One story file per component**, with `tags: ['autodocs']`. Each has:
   - a **Playground** (args and controls);
   - an **All variants** grid, wrapped in `<StoryMatrix>`, which renders it in light/dark × comfortable/compact, so the axe check covers all four combinations;
   - a docs description with **Do / Don't** notes.
+- **Overlays also get open stories.** Each overlay has stories that render it open (`defaultOpen`), in light/comfortable and dark/compact, tagged `!autodocs` so modals don't open over the docs page. They use `openOverlayA11y` (`src/dev/a11y.ts`) to exclude only the page Radix hid behind the modal.
 - **Play functions test behavior in a real browser.** Unit tests (Vitest + Testing Library, jsdom) cover logic, types and DOM contracts.
 - **Type-level guarantees get a `@ts-expect-error` test.** `pnpm typecheck` fails if the error disappears.

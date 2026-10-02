@@ -70,6 +70,13 @@
   /* Shadow */
   --shadow-none: 0 0 #0000;
 
+  /* Layers (z-index). Menus, selects and tooltips sit ABOVE modals, because
+     they can open from inside a dialog or drawer. Toasts are always on top. */
+  --z-overlay: 100;
+  --z-modal: 110;
+  --z-dropdown: 120;
+  --z-toast: 130;
+
   /* Motion */
   --duration-fast: 120ms;
   --duration-base: 200ms;

@@ -59,7 +59,8 @@ export default defineConfig([
     },
   },
 
-  // Components export their cva variants (and StatusPill its status map) next to
+  // Components export their cva variants (plus StatusPill's status map and the
+  // useToast / useAnnounce hooks, which share private context) next to
   // the component, by convention (docs/component-conventions.md). Editing one of
   // these triggers a full reload instead of fast refresh, which is acceptable.
   {
@@ -81,6 +82,10 @@ export default defineConfig([
             'amountVariants',
             'spinnerVariants',
             'skeletonVariants',
+            'dialogContentVariants',
+            'drawerContentVariants',
+            'useToast',
+            'useAnnounce',
           ],
         },
       ],

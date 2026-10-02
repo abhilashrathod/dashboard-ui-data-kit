@@ -1,5 +1,5 @@
-import { Slot, Slottable } from '@radix-ui/react-slot'
 import { cva, type VariantProps } from 'class-variance-authority'
+import { Slot } from 'radix-ui'
 import type { ComponentProps, MouseEvent, ReactNode } from 'react'
 import { cn } from '@/lib/cn'
 import { Spinner } from '../spinner'
@@ -94,7 +94,7 @@ export function Button({
 
   if (asChild) {
     return (
-      <Slot
+      <Slot.Root
         ref={ref}
         className={classes}
         aria-disabled={disabled || undefined}
@@ -103,9 +103,9 @@ export function Button({
         {...props}
       >
         {iconSlot(leftIcon)}
-        <Slottable>{children}</Slottable>
+        <Slot.Slottable>{children}</Slot.Slottable>
         {iconSlot(rightIcon)}
-      </Slot>
+      </Slot.Root>
     )
   }
 
