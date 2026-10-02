@@ -149,11 +149,13 @@ export const ColumnsStory = meta.story({
 
     await userEvent.click(email)
     await expect(email).toHaveAttribute('aria-checked', 'false')
-    await expect(body.getByRole('menu')).toBeVisible()
+    // Assert the state, not opacity: under load the enter animation may be on frame 0.
+    await expect(body.getByRole('menu')).toHaveAttribute('data-state', 'open')
     await expect(canvas.getByTestId('visible')).not.toHaveTextContent('Email')
 
     await userEvent.click(body.getByRole('menuitemcheckbox', { name: 'Status' }))
-    await expect(body.getByRole('menu')).toBeVisible()
+    // Assert the state, not opacity: under load the enter animation may be on frame 0.
+    await expect(body.getByRole('menu')).toHaveAttribute('data-state', 'open')
     await userEvent.keyboard('{Escape}')
     // Wait for the exit animation, so the page is no longer aria-hidden when axe runs.
     await waitFor(() => expect(body.queryByRole('menu')).toBeNull())

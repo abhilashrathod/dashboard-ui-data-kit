@@ -41,6 +41,11 @@ export default mergeConfig(
           ],
           test: {
             name: 'storybook',
+            // Run after the unit and node projects (groupOrder 0), not alongside
+            // them: Chromium competing for CPU made time-sensitive unit tests
+            // (the 10k-order performance budget, Radix interactions in jsdom)
+            // fail intermittently.
+            sequence: { groupOrder: 1 },
             browser: {
               enabled: true,
               provider: playwright(),

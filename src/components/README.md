@@ -16,6 +16,7 @@ Conventions: [docs/component-conventions.md](../../docs/component-conventions.md
 - Display: `Badge`, `StatusPill`, `DeltaChip`, `Amount`, `Card`
 - Feedback: `Spinner`, `Skeleton`, `SkeletonText`, `VisuallyHidden`
 - Overlays (Radix): `Popover`, `DropdownMenu`, `Select`, `Dialog`, `ConfirmDialog`, `Drawer`, `Tooltip`, `TruncatedText`
+- Data states: `DataBoundary`, `EmptyState` (+ `NoDataEmptyState`, `NoResultsEmptyState`), `ErrorState`, `StaleBanner`, `RefetchIndicator`. See [docs/data-states.md](../../docs/data-states.md).
 - App-wide: `KitProvider` (render once at the root), `useToast()`, `useAnnounce()`
 - `overlay/styles.ts`: the shared panel, motion, backdrop and menu-row styles
 

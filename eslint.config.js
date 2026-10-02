@@ -86,6 +86,8 @@ export default defineConfig([
             'drawerContentVariants',
             'useToast',
             'useAnnounce',
+            'emptyStateVariants',
+            'ERROR_COPY',
           ],
         },
       ],

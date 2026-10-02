@@ -5,6 +5,7 @@ import {
   formatDate,
   formatNumber,
   formatPercent,
+  formatRelative,
   MINUS,
 } from '../format'
 
@@ -58,5 +59,32 @@ describe('formatDate', () => {
 
   it('returns a dash for invalid input', () => {
     expect(formatDate('not a date')).toBe('—')
+  })
+})
+
+describe('formatRelative', () => {
+  const now = Date.parse('2026-09-30T12:00:00Z')
+  const ago = (ms: number) => formatRelative(now - ms, now)
+
+  it('uses seconds under 45s', () => {
+    expect(ago(0)).toBe('now')
+    expect(ago(30_000)).toBe('30 seconds ago')
+  })
+
+  it('uses minutes under 45 minutes', () => {
+    expect(ago(50_000)).toBe('1 minute ago')
+    expect(ago(2 * 60_000)).toBe('2 minutes ago')
+    expect(ago(44 * 60_000)).toBe('44 minutes ago')
+  })
+
+  it('uses hours, then days', () => {
+    expect(ago(50 * 60_000)).toBe('1 hour ago')
+    expect(ago(3 * 3_600_000)).toBe('3 hours ago')
+    expect(ago(26 * 3_600_000)).toBe('yesterday')
+    expect(ago(3 * 86_400_000)).toBe('3 days ago')
+  })
+
+  it('handles the future', () => {
+    expect(formatRelative(now + 2 * 60_000, now)).toBe('in 2 minutes')
   })
 })

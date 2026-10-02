@@ -78,3 +78,26 @@ export function formatDate(
   const date = new Date(iso)
   return Number.isNaN(date.getTime()) ? '—' : dates[style].format(date)
 }
+
+const relative = new Intl.RelativeTimeFormat(LOCALE, { numeric: 'auto' })
+
+const RELATIVE_STEPS = [
+  { unit: 'second', ms: 1000, below: 45 },
+  { unit: 'minute', ms: 60_000, below: 45 },
+  { unit: 'hour', ms: 3_600_000, below: 22 },
+  { unit: 'day', ms: 86_400_000, below: Infinity },
+] as const
+
+/**
+ * A timestamp relative to `now`: "now", "30 seconds ago", "2 minutes ago",
+ * "3 hours ago", "yesterday". Each unit is used until it would read oddly
+ * (45 seconds → "1 minute"), as Intl's own examples do.
+ */
+export function formatRelative(timestamp: number, now: number = Date.now()): string {
+  const diff = timestamp - now
+  for (const { unit, ms, below } of RELATIVE_STEPS) {
+    const value = Math.round(diff / ms)
+    if (Math.abs(value) < below) return relative.format(value === 0 ? 0 : value, unit)
+  }
+  return relative.format(Math.round(diff / 86_400_000), 'day')
+}
