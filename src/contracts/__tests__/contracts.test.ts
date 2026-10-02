@@ -1,5 +1,5 @@
 import { describe, expect, expectTypeOf, it } from 'vitest'
-import type * as z from '@/contracts/zod'
+import type { z } from '@/contracts/zod'
 import {
   ApiErrorBody,
   BulkStatusUpdateInput,

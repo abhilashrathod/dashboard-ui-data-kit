@@ -1,5 +1,5 @@
 import { ApiErrorBody } from '@/contracts'
-import * as z from '@/contracts/zod'
+import { z } from '@/contracts/zod'
 import { ApiError } from './errors'
 
 export interface ApiFetchOptions<S extends z.ZodMiniType> {

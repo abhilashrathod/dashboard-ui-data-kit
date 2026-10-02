@@ -1,6 +1,6 @@
 import { HttpResponse, type JsonBodyType } from 'msw'
 import type { ApiErrorBody, ApiErrorCode } from '@/contracts'
-import type * as z from '@/contracts/zod'
+import type { z } from '@/contracts/zod'
 
 let requestCounter = 0
 

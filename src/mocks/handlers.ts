@@ -11,7 +11,7 @@ import {
   pageSchema,
   RevenueSeriesResponse,
 } from '@/contracts'
-import * as z from '@/contracts/zod'
+import { z } from '@/contracts/zod'
 import { db } from './data/db'
 import { apiError, json, zodToFieldErrors, zodToIssues } from './http'
 import { type EndpointKey, withNetwork } from './network'

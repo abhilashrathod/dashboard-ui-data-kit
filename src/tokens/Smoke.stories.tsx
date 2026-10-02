@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { expect } from 'storybook/test'
 import preview from '../../.storybook/preview'
-import * as z from '@/contracts/zod'
+import { z } from '@/contracts/zod'
 import { apiFetch } from '@/lib/api'
 
 function SurfaceCard() {

@@ -1,4 +1,4 @@
-import * as z from './zod'
+import { z } from './zod'
 
 export const MetricsRange = z.enum(['7d', '30d', '90d'])
 export type MetricsRange = z.infer<typeof MetricsRange>

@@ -1,4 +1,4 @@
-import * as z from './zod'
+import { z } from './zod'
 
 export const ORDER_STATUSES = ['pending', 'paid', 'shipped', 'refunded', 'failed'] as const
 export const OrderStatus = z.enum(ORDER_STATUSES)

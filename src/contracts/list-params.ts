@@ -1,5 +1,5 @@
 import { Channel, OrderStatus } from './order'
-import * as z from './zod'
+import { z } from './zod'
 
 // ── Schema ───────────────────────────────────────────────────────────────────
 

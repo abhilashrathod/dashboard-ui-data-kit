@@ -1,4 +1,4 @@
-import * as z from './zod'
+import { z } from './zod'
 
 /** Paginated list envelope, e.g. `pageSchema(Order)`. Pages are 1-based. */
 export function pageSchema<T extends z.ZodMiniType>(itemSchema: T) {
