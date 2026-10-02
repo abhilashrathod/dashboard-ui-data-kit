@@ -1,6 +1,6 @@
 # lib
 
-Small utilities with no UI dependencies. Only `data-state/` and `url-state/` touch React, through small hooks.
+Small utilities with no UI dependencies. Only `data-state/`, `url-state/` and `query/` touch React, through small hooks.
 
 - `cn.ts`: `clsx` + `tailwind-merge` class-name composition.
 - `api/`: the typed API client.
@@ -19,3 +19,9 @@ Small utilities with no UI dependencies. Only `data-state/` and `url-state/` tou
   - `useListParams.ts`: params from the URL, `setParams` / `resetParams`, and canonicalize-on-load (the layer's only effect).
   - `listParamsActions.ts`: pure updaters (`setSort`, `setPage`, `upsertFilter`, …) for `setParams`.
   - `UrlStateProvider.tsx`, `context.ts`: supply the adapter (browser by default).
+- `query/`: the query layer on top of the URL store (see [docs/url-state.md](../../docs/url-state.md#the-query-half)).
+  - `queryClient.ts`: `createQueryClient({ mode })` and the pure `shouldRetry` policy.
+  - `keys.ts`: `queryKeys`, the hierarchical key factory (list keys use the canonical params string).
+  - `useOrdersList.ts`: one list page, keepPreviousData, cancellation, and the next-page prefetch (the layer's only effect).
+  - `useMetrics.ts`, `mutations.ts`: KPIs, revenue, create order and bulk status (invalidate on settle, no optimistic updates).
+  - `useOrdersTableData.ts`: URL params → list query → DataState, for the Stage 4 table.

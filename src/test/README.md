@@ -3,7 +3,8 @@
 Vitest test infrastructure for the `unit` project (jsdom).
 
 - `setup.ts`: jest-dom matchers, MSW Node server lifecycle (`onUnhandledFrame: 'error'`), cleanup.
-- `render.tsx`: `renderWithProviders()` with a fresh, non-retrying QueryClient.
+- `render.tsx`: `renderWithProviders()` with the app's providers: an in-memory URL (`url` option) and a fresh `createQueryClient({ mode: 'test' })` (no retries).
+- `requestLog.ts`: `createRequestLog(server)` counts requests that reached MSW (`count`, `byPath`) and aborted fetch signals (`abortedCount`), for the "exactly N requests" tests.
 
 Story tests run separately, in the `storybook` project (real Chromium), and need no setup here.
 

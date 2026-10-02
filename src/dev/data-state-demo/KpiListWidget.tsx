@@ -5,6 +5,7 @@ import { fetchKpis } from '@/lib/api'
 import { useDataState } from '@/lib/data-state'
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/format'
 import { WidgetCard } from './WidgetCard'
+import { queryKeys } from '@/lib/query'
 
 const isEmpty = ({ kpis }: KpiResponse) =>
   kpis.every((kpi) => kpi.value === 0 && kpi.previousValue === 0)
@@ -32,7 +33,7 @@ const skeleton = (
 /** Compact boundary: four KPI tiles with deltas. */
 export function KpiListWidget() {
   const query = useQuery({
-    queryKey: ['metrics', 'kpis', '30d'],
+    queryKey: queryKeys.metrics.kpis('30d'),
     queryFn: ({ signal }) => fetchKpis('30d', signal),
   })
   const state = useDataState(query, { isEmpty })

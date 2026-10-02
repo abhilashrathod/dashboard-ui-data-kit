@@ -20,6 +20,7 @@ import { fetchOrders } from '@/lib/api'
 import { useDataState } from '@/lib/data-state'
 import { formatNumber } from '@/lib/format'
 import { WidgetCard } from './WidgetCard'
+import { queryKeys } from '@/lib/query'
 
 /** No seeded order matches this (the largest failed order is under $3,000). */
 const FILTERED: ListParams = {
@@ -49,7 +50,7 @@ export function FilteredOrdersWidget({ defaultFiltered = false }: { defaultFilte
   const [filtered, setFiltered] = useState(defaultFiltered)
   const params = filtered ? FILTERED : DEFAULT_LIST_PARAMS
   const query = useQuery({
-    queryKey: ['orders', listParamsKey(params)],
+    queryKey: queryKeys.orders.list(listParamsKey(params)),
     queryFn: ({ signal }) => fetchOrders(params, signal),
     placeholderData: keepPreviousData,
   })

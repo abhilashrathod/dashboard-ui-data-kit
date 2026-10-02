@@ -5,13 +5,14 @@ import { fetchOrders } from '@/lib/api'
 import { useDataState } from '@/lib/data-state'
 import { formatNumber } from '@/lib/format'
 import { WidgetCard } from './WidgetCard'
+import { queryKeys } from '@/lib/query'
 
 const isEmpty = (page: Page<Order>) => page.total === 0
 
 /** The minimal wiring: query → useDataState → DataBoundary. */
 export function OrdersCountWidget() {
   const query = useQuery({
-    queryKey: ['orders', listParamsKey(DEFAULT_LIST_PARAMS)],
+    queryKey: queryKeys.orders.list(listParamsKey(DEFAULT_LIST_PARAMS)),
     queryFn: ({ signal }) => fetchOrders(DEFAULT_LIST_PARAMS, signal),
   })
   const state = useDataState(query, { isEmpty })

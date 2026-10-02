@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { DEFAULT_LIST_PARAMS, listParamsKey } from '@/contracts'
 import { Button, Card } from '@/components'
 import { fetchOrders, isApiError } from '@/lib/api'
+import { queryKeys } from '@/lib/query'
 
 const count = new Intl.NumberFormat('en-US')
 
@@ -13,7 +14,7 @@ const count = new Intl.NumberFormat('en-US')
  */
 export function OrdersCard() {
   const orders = useQuery({
-    queryKey: ['orders', listParamsKey(DEFAULT_LIST_PARAMS)],
+    queryKey: queryKeys.orders.list(listParamsKey(DEFAULT_LIST_PARAMS)),
     queryFn: ({ signal }) => fetchOrders(DEFAULT_LIST_PARAMS, signal),
   })
 

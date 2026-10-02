@@ -1,7 +1,8 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClientProvider } from '@tanstack/react-query'
 import { render, type RenderOptions } from '@testing-library/react'
 import type { ReactElement } from 'react'
 import { KitProvider } from '@/components'
+import { createQueryClient } from '@/lib/query'
 import { createMemoryAdapter, UrlStateProvider } from '@/lib/url-state'
 
 export interface RenderWithProvidersOptions extends Omit<RenderOptions, 'wrapper'> {
@@ -11,13 +12,13 @@ export interface RenderWithProvidersOptions extends Omit<RenderOptions, 'wrapper
 
 /**
  * Render with the same providers as main.tsx (URL state + QueryClient + KitProvider),
- * using an in-memory URL and a fresh non-retrying QueryClient.
+ * using an in-memory URL and a fresh test-mode QueryClient (no retries).
  */
 export function renderWithProviders(
   ui: ReactElement,
   { url = '', ...options }: RenderWithProvidersOptions = {},
 ) {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const queryClient = createQueryClient({ mode: 'test' })
   const urlAdapter = createMemoryAdapter(url)
   return {
     queryClient,

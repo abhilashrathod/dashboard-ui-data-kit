@@ -7,9 +7,11 @@ A list's filters, sort, page, page size and search live in the URL, and only the
 - **The hook:** [`src/lib/url-state/useListParams.ts`](../src/lib/url-state/useListParams.ts)
 - **Updaters:** [`src/lib/url-state/listParamsActions.ts`](../src/lib/url-state/listParamsActions.ts)
 - **Encoding rules:** [`src/contracts/list-params.ts`](../src/contracts/list-params.ts)
-- **Demo:** Storybook → **Data/URL state** ([`src/dev/url-state-demo/`](../src/dev/url-state-demo/))
+- **Query layer:** [`src/lib/query/`](../src/lib/query/) (`queryClient.ts`, `keys.ts`, `useOrdersList.ts`, `useOrdersTableData.ts`, `mutations.ts`)
+- **Proof:** [`src/lib/query/__tests__/noDoubleFetch.test.tsx`](../src/lib/query/__tests__/noDoubleFetch.test.tsx)
+- **Demos:** Storybook → **Data/URL state** ([`src/dev/url-state-demo/`](../src/dev/url-state-demo/)) and **Data/URL ↔ Query** ([`src/dev/url-query-demo/`](../src/dev/url-query-demo/)), which adds a live request log
 
-This is the first half of README hard problem #1 (shareable, back-button-correct list state). Stage 3b adds the other half: the query cache keyed on these params.
+This is README hard problem #1 (shareable, back-button-correct list state, with no loops and no double fetches). The first half is the URL store; [the query half](#the-query-half) connects it to TanStack Query, and [Proof](#proof) lists the request-counting tests that back the claims.
 
 ## The rule: the URL is the single source of truth
 
@@ -174,3 +176,90 @@ function NextRouterUrlState({ children }: { children: ReactNode }) {
 ```
 
 The trade-off: `router.push` updates the URL asynchronously (in a transition), so two `setParams` calls in the same tick no longer compose. Funnel multi-part changes through one updater. For server rendering, give `useSyncExternalStore` a `getServerSnapshot` that returns the request's search string, so the first client render matches the server's.
+
+## The query half
+
+```
+URL ──useListParams──► params (stable per key) ──► key = listParamsKey(params)
+                                                     │
+                       useOrdersList(params) ◄───────┘
+                         queryKey: ['orders', 'list', key]
+                         queryFn:  ({ signal }) => fetchOrders(params, signal)
+                         placeholderData: keepPreviousData
+                                │
+                       useDataState → DataBoundary (useOrdersTableData glues the three)
+```
+
+### Key design
+
+`queryKeys` ([`keys.ts`](../src/lib/query/keys.ts)) builds every key:
+
+```
+['orders']                         orders.all
+['orders', 'list']                 orders.lists()        ← invalidate every list
+['orders', 'list', 'page=2&f=…']   orders.list(key)      ← one page of one view
+['metrics']                        metrics.all
+['metrics', 'kpis', '30d']         metrics.kpis(range)
+```
+
+- **The list key is the canonical string**, not the params object. Equivalent params ⇔ equal keys, so a reordered link, a default written out, or a change in another namespace can't create a second cache entry, or a second request. It's also exactly the query string `fetchOrders` sends, so a cache entry and a request URL are one-to-one.
+- **The hierarchy enables targeted invalidation.** A mutation invalidates `orders.lists()` (every page and filter) and `metrics.all`, and nothing else.
+
+### keepPreviousData → isPlaceholder
+
+When the key changes (next page, new filter), the new query has no data yet. With `placeholderData: keepPreviousData` the previous key's rows stay on screen, and `isPlaceholderData` is true. `toDataState` turns that into `ready` with `isPlaceholder: true`, so `DataBoundary` dims the old rows and shows the refetch bar instead of flashing a skeleton. When the new page lands, `isPlaceholder` goes false. (An empty placeholder is treated as `loading`, so "no results" never flashes for the wrong key; see [data-states.md](data-states.md).)
+
+### Cancellation, and why the client rethrows AbortError
+
+Every `queryFn` passes TanStack's `signal` to the API client. When the key changes before the response arrives, the old query loses its last observer, and because its signal was used, TanStack aborts it. Click three filters quickly and two requests are cancelled, not just ignored.
+
+`apiFetch` rethrows the `AbortError` unchanged instead of wrapping it in an `ApiError`. TanStack recognizes its own cancellation by that error and reverts the query quietly. Wrapped, it would look like a real failure: an error state (or a retry) for a request nobody is waiting on any more.
+
+### The prefetch effect
+
+`useOrdersList` prefetches page + 1 after the current page's real data arrives (not while showing a placeholder, and not past the last page). It's the only effect in the query layer, and it's safe:
+
+- **Idempotent:** `prefetchQuery` joins an in-flight fetch for that key, and does nothing while the page is cached and fresh. Running it twice (StrictMode) or on every refetch costs nothing.
+- **No feedback:** it writes to neither the URL nor the current query, so it can't trigger itself.
+
+"Next page" is then served from cache: ready immediately, with no placeholder and no request.
+
+### Retry policy
+
+`shouldRetry(failureCount, error)` ([`queryClient.ts`](../src/lib/query/queryClient.ts)), used by the app client. Stories and tests don't retry by default, so error states show at once; a story opts in with `parameters.query = { retry: true }`.
+
+| Error                            | Retries                 | Why                                                   |
+| -------------------------------- | ----------------------- | ----------------------------------------------------- |
+| 400, 404, 422                    | never                   | The request is wrong; sending it again can't succeed. |
+| `CONTRACT` (2xx body ≠ contract) | never                   | The server will give the same answer again.           |
+| status 0 (no response), 5xx      | up to 2 (500ms, 1000ms) | Transient: the network or the server may recover.     |
+| other 4xx, non-`ApiError`        | never                   | Not known to be transient.                            |
+| `AbortError`                     | n/a                     | Cancellation, not a failure (see above).              |
+
+### staleTime: 30 seconds
+
+Within 30s, Back/Forward and revisiting a view are served from cache with **no request**. After that, the cached data still shows at once and is revalidated in the background (stale-while-revalidate), including on window focus, which shows the RefetchIndicator. Thirty seconds is short enough that a dashboard doesn't show old numbers for long, and long enough to cover the clicking around within a session. Unused entries (old filters, prefetched pages) are kept for 5 minutes (`gcTime`), so Back stays instant.
+
+### No optimistic updates
+
+They were deliberately cut. Mutations wait for the server, then invalidate `orders.lists()` and `metrics.all`; the active queries refetch with the truth, and the rest refetch when next used. A bulk status update can partly succeed (`{ updated, failed }`), so an optimistic version would need a per-row rollback matching the server's `failed` list, across every cached page and filter it touched. That's a lot of complexity for a ~300ms win.
+
+## Proof
+
+[`noDoubleFetch.test.tsx`](../src/lib/query/__tests__/noDoubleFetch.test.tsx) renders the real hooks (memory URL + `createQueryClient({ mode: 'test' })`), all inside `<StrictMode>`, which double-invokes effects. MSW's `request:start` event counts what actually reached the network, and a fetch spy records which signals were aborted. Each test name is a claim:
+
+| Claim (test name)                                                            | Measured                                                                       |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| initial mount makes exactly 1 list request (+1 prefetch for page 2)          | page 1: 1, page 2: 1, total 2, aborted 0                                       |
+| changing a filter on page 3 makes exactly 1 request, already for page 1      | new filter page 1: 1, page 3: 0 (+1 page-2 prefetch), total 2                  |
+| an equivalent but differently-ordered URL makes 0 requests                   | 0 (canonicalized to the same key, cache hit)                                   |
+| Back to the previous view makes 0 requests within staleTime                  | 0, and the data is the identical cached object                                 |
+| changing an unrelated param (?network or another namespace) makes 0 requests | 0, same `params` object and `key`                                              |
+| rapid filter changes cancel stale requests and the last one wins             | 3 requests (earlier ones slower), 2 aborted, data matches the last params      |
+| the next page is served from the prefetch cache                              | page 2: 0 new (ready, not placeholder, in the same render); +1 page-3 prefetch |
+| while the next page loads, the previous rows stay visible                    | ready + isPlaceholder (page-1 rows), then ready with page 2; 1 request         |
+| bulk update invalidates lists and metrics                                    | 1 PATCH, then list 1 and KPIs 1: total 3                                       |
+
+The retry policy has its own tests ([`queryClient.test.ts`](../src/lib/query/__tests__/queryClient.test.ts)): the app client sends a 503 three times (two retries) and a 422 once.
+
+Storybook's **Data/URL ↔ Query** shows the same thing live: its play test checks that a filter change adds exactly one list request (plus its prefetch), and Back adds none.

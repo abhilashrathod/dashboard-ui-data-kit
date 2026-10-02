@@ -2,10 +2,11 @@ import addonA11y from '@storybook/addon-a11y'
 import addonDocs from '@storybook/addon-docs'
 import addonVitest from '@storybook/addon-vitest'
 import { definePreview } from '@storybook/react-vite'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClientProvider } from '@tanstack/react-query'
 import addonMsw from 'msw-storybook-addon'
 import { useLayoutEffect, useState, type ReactNode } from 'react'
 import { KitProvider } from '@/components'
+import { createQueryClient } from '@/lib/query'
 import { createMemoryAdapter, type MemoryUrlAdapter, UrlStateProvider } from '@/lib/url-state'
 import { startMockWorker } from '@/mocks/browser'
 import { resetDb } from '@/mocks/data/db'
@@ -50,15 +51,22 @@ const isNetworkMode = (value: unknown): value is NetworkMode =>
   NETWORK_MODES.some((mode) => mode === value)
 
 /**
+ * Per-story query options. `retry: true` turns on the app's retry policy
+ * (stories don't retry by default, so error states show at once):
+ *   parameters: { query: { retry: true } }
+ */
+export interface QueryParameter {
+  retry?: boolean
+}
+
+/**
  * A fresh QueryClient per mount. The decorator keys this on story id + network
  * mode, so cached data never leaks between stories, and switching the network
  * toolbar shows the new state instead of stale data. useState keeps the client
  * stable across re-renders of the same mount.
  */
-function StoryQueryProvider({ children }: { children: ReactNode }) {
-  const [client] = useState(
-    () => new QueryClient({ defaultOptions: { queries: { retry: false } } }),
-  )
+function StoryQueryProvider({ retry, children }: { retry: boolean; children: ReactNode }) {
+  const [client] = useState(() => createQueryClient({ mode: 'storybook', retry }))
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>
 }
 
@@ -164,9 +172,12 @@ export default definePreview({
 
   decorators: [
     // Fresh query cache, URL and kit state (toasts, announcer) per story.
-    (Story, { id, globals, loaded }) => (
+    (Story, { id, globals, loaded, parameters }) => (
       <UrlStateProvider adapter={storyUrl(loaded)}>
-        <StoryQueryProvider key={`${id}:${String(globals.network)}`}>
+        <StoryQueryProvider
+          key={`${id}:${String(globals.network)}`}
+          retry={(parameters.query as QueryParameter | undefined)?.retry === true}
+        >
           <KitProvider>
             <Story />
           </KitProvider>

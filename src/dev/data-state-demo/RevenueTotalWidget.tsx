@@ -5,6 +5,7 @@ import { fetchRevenueSeries } from '@/lib/api'
 import { useDataState } from '@/lib/data-state'
 import { formatNumber } from '@/lib/format'
 import { WidgetCard } from './WidgetCard'
+import { queryKeys } from '@/lib/query'
 
 // The series is zero-filled, so "empty" means no orders on any day.
 const isEmpty = ({ points }: RevenueSeriesResponse) => points.every((point) => point.orders === 0)
@@ -12,7 +13,7 @@ const isEmpty = ({ points }: RevenueSeriesResponse) => points.every((point) => p
 /** Derives a total from the series inside the render function. */
 export function RevenueTotalWidget() {
   const query = useQuery({
-    queryKey: ['metrics', 'revenue', '30d'],
+    queryKey: queryKeys.metrics.revenue('30d'),
     queryFn: ({ signal }) => fetchRevenueSeries('30d', signal),
   })
   const state = useDataState(query, { isEmpty })
