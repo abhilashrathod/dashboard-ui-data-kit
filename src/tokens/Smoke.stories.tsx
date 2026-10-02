@@ -4,21 +4,36 @@ import preview from '../../.storybook/preview'
 import { z } from '@/contracts/zod'
 import { apiFetch } from '@/lib/api'
 
+const STATUSES = ['success', 'warning', 'danger', 'info', 'neutral'] as const
+
+// Literal class names, so Tailwind's scanner sees every one.
+const STATUS_PILL: Record<(typeof STATUSES)[number], string> = {
+  success: 'bg-status-success-subtle text-status-success-fg',
+  warning: 'bg-status-warning-subtle text-status-warning-fg',
+  danger: 'bg-status-danger-subtle text-status-danger-fg',
+  info: 'bg-status-info-subtle text-status-info-fg',
+  neutral: 'bg-status-neutral-subtle text-status-neutral-fg',
+}
+
 function SurfaceCard() {
   return (
-    <div className="rounded-lg border border-border bg-surface p-6 shadow-md">
-      <h2 className="text-base font-semibold text-fg-default">Surface card</h2>
-      <p className="mt-1 text-sm text-fg-muted">
-        Rendered with semantic token classes only. Flip the theme toolbar to check dark mode.
+    <div className="rounded-lg bg-surface p-card">
+      <h2 className="text-md font-semibold text-fg">Surface card</h2>
+      <p className="mt-1 text-fg-muted">
+        Rendered with semantic token classes only. Flip the theme and density toolbars to check
+        both.
       </p>
-      <ul className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-sm font-medium">
-        <li className="text-accent">accent</li>
-        <li className="text-success">success</li>
-        <li className="text-warning">warning</li>
-        <li className="text-danger">danger</li>
-        <li className="text-info">info</li>
+      <ul className="mt-4 flex flex-wrap gap-2 text-sm font-medium">
+        <li className="rounded-pill bg-accent-subtle px-3 py-1 text-accent-subtle-fg">accent</li>
+        {STATUSES.map((status) => (
+          <li key={status} className={`rounded-pill px-3 py-1 ${STATUS_PILL[status]}`}>
+            {status}
+          </li>
+        ))}
       </ul>
-      <div className="mt-4 rounded-md bg-muted p-3 text-sm text-fg-muted">bg-muted</div>
+      <div className="mt-4 rounded-md bg-surface-subtle p-tile text-fg-muted">
+        bg-surface-subtle
+      </div>
     </div>
   )
 }
@@ -32,17 +47,17 @@ function HealthProbe() {
   })
 
   return (
-    <div className="rounded-lg border border-border bg-surface p-6 shadow-sm">
-      <p className="text-sm text-fg-muted">
+    <div className="rounded-lg bg-surface p-card">
+      <p className="text-fg-muted">
         <code>GET /api/health</code>
       </p>
       <p className="mt-1 text-xl font-semibold">
         {health.isPending ? (
           'loading…'
         ) : health.isError ? (
-          <span className="text-danger">error</span>
+          <span className="text-status-danger-fg">error</span>
         ) : (
-          <span className="text-success">{health.data.ok ? 'ok' : 'not ok'}</span>
+          <span className="text-status-success-fg">{health.data.ok ? 'ok' : 'not ok'}</span>
         )}
       </p>
     </div>

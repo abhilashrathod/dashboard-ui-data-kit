@@ -7,6 +7,19 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 import globals from 'globals'
 import tseslint from 'typescript-eslint'
 
+/*
+ * Raw Tailwind palette classes (bg-orange-500, text-slate-600, border-white, …).
+ * The theme resets the default palette, so they would generate no CSS at all;
+ * this rule makes the mistake loud. Use semantic token classes instead.
+ * esquery regexes can't contain "/", so keep this pattern slash-free.
+ */
+const RAW_PALETTE_CLASS = [
+  String.raw`\b(bg|text|border|ring|outline|fill|stroke|from|via|to|divide|decoration|shadow|accent|caret|placeholder)-`,
+  String.raw`((slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-[0-9]{2,3}|white|black)\b`,
+].join('')
+const RAW_PALETTE_MESSAGE =
+  'Raw Tailwind palette classes are disabled. Use a semantic token class (bg-surface, text-fg-muted, bg-status-danger-subtle, …). See src/tokens/README.md.'
+
 export default defineConfig([
   globalIgnores(['dist', 'storybook-static', 'coverage', 'public/mockServiceWorker.js']),
 
@@ -29,6 +42,20 @@ export default defineConfig([
     },
     rules: {
       '@typescript-eslint/consistent-type-imports': 'error',
+    },
+  },
+
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        { selector: `Literal[value=/${RAW_PALETTE_CLASS}/]`, message: RAW_PALETTE_MESSAGE },
+        {
+          selector: `TemplateElement[value.raw=/${RAW_PALETTE_CLASS}/]`,
+          message: RAW_PALETTE_MESSAGE,
+        },
+      ],
     },
   },
 

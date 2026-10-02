@@ -15,9 +15,19 @@ export default mergeConfig(
             name: 'unit',
             environment: 'jsdom',
             include: ['src/**/*.test.{ts,tsx}'],
+            exclude: ['src/**/*.node.test.ts'],
             setupFiles: ['./src/test/setup.ts'],
             restoreMocks: true,
             unstubGlobals: true,
+          },
+        },
+        {
+          // Pure Node tests (no DOM, no MSW), e.g. the token guard tests that read tokens.css.
+          extends: true,
+          test: {
+            name: 'node',
+            environment: 'node',
+            include: ['src/**/*.node.test.ts'],
           },
         },
         {

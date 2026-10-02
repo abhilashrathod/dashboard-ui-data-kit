@@ -1,18 +1,19 @@
 /*
  * Tailwind theme mapping: exposes ONLY the semantic tokens from tokens.css.
  *
- * The default color/radius/shadow/font namespaces are reset, so raw palette
- * classes such as `bg-red-500` or `text-slate-600` do not exist. Use the
- * semantic classes instead: `bg-surface`, `text-fg-muted`, `border-border`,
- * `ring-focus-ring`, `text-danger`, `rounded-md`, `shadow-sm`, `font-sans`.
+ * The default color/radius/shadow/font/text/weight/ease namespaces are reset,
+ * so raw palette classes such as `bg-orange-500` or `text-slate-600` generate
+ * nothing (and ESLint flags them). Class names read like the tokens:
+ * `bg-surface-subtle`, `text-fg-muted`, `bg-accent-solid`, `rounded-pill`,
+ * `shadow-overlay`, `h-control-md`, `text-display`.
  *
- * `inline` makes utilities emit `var(--color-…)` directly, so they follow
- * whichever [data-theme] is closest in the DOM (e.g. a single Storybook story).
+ * `inline` makes utilities emit `var(--…)` directly, so they follow whichever
+ * [data-theme] / [data-density] is closest in the DOM (e.g. one Storybook story).
  *
  * `reference` stops Tailwind from also emitting these as variables in
- * @layer theme. Several keys share their token's name (--color-border,
- * --radius-md, …), so emitting them would declare cyclic variables such as
- * `--color-border: var(--color-border)`. tokens.css is the only source of the
+ * @layer theme. Many keys share their token's name (--color-fg, --radius-md,
+ * …), so emitting them would declare cyclic variables such as
+ * `--color-fg: var(--color-fg)`. tokens.css is the only source of the
  * variables themselves.
  */
 
@@ -21,40 +22,148 @@
   --radius-*: initial;
   --shadow-*: initial;
   --font-*: initial;
+  --text-*: initial;
+  --font-weight-*: initial;
+  --ease-*: initial;
 
-  /* Backgrounds */
-  --color-canvas: var(--color-bg-canvas);
-  --color-surface: var(--color-bg-surface);
-  --color-muted: var(--color-bg-muted);
-
-  /* Foregrounds */
-  --color-fg-default: var(--color-fg-default);
-  --color-fg-muted: var(--color-fg-muted);
-
-  /* Lines, accent, focus */
-  --color-border: var(--color-border);
-  --color-accent: var(--color-accent);
-  --color-focus-ring: var(--color-focus-ring);
-
-  /* Status */
-  --color-success: var(--color-status-success);
-  --color-warning: var(--color-status-warning);
-  --color-danger: var(--color-status-danger);
-  --color-info: var(--color-status-info);
-
-  /* Always-available keywords */
+  /* Keywords */
   --color-transparent: transparent;
   --color-current: currentColor;
+  --color-inherit: inherit;
 
+  /* Surface */
+  --color-canvas: var(--color-canvas);
+  --color-surface: var(--color-surface);
+  --color-surface-subtle: var(--color-surface-subtle);
+  --color-surface-muted: var(--color-surface-muted);
+  --color-surface-inverse: var(--color-surface-inverse);
+
+  /* Text */
+  --color-fg: var(--color-fg);
+  --color-fg-muted: var(--color-fg-muted);
+  --color-fg-subtle: var(--color-fg-subtle);
+  --color-fg-inverse: var(--color-fg-inverse);
+
+  /* Border */
+  --color-border: var(--color-border);
+  --color-border-strong: var(--color-border-strong);
+
+  /* Action */
+  --color-ink: var(--color-ink);
+  --color-ink-hover: var(--color-ink-hover);
+  --color-ink-fg: var(--color-ink-fg);
+
+  /* Accent */
+  --color-accent: var(--color-accent);
+  --color-accent-solid: var(--color-accent-solid);
+  --color-accent-solid-hover: var(--color-accent-solid-hover);
+  --color-accent-solid-fg: var(--color-accent-solid-fg);
+  --color-accent-text: var(--color-accent-text);
+  --color-accent-subtle: var(--color-accent-subtle);
+  --color-accent-subtle-fg: var(--color-accent-subtle-fg);
+  --color-accent-gradient-fg: var(--color-accent-gradient-fg);
+
+  /* Status */
+  --color-status-success: var(--color-status-success);
+  --color-status-success-subtle: var(--color-status-success-subtle);
+  --color-status-success-fg: var(--color-status-success-fg);
+  --color-status-warning: var(--color-status-warning);
+  --color-status-warning-subtle: var(--color-status-warning-subtle);
+  --color-status-warning-fg: var(--color-status-warning-fg);
+  --color-status-danger: var(--color-status-danger);
+  --color-status-danger-subtle: var(--color-status-danger-subtle);
+  --color-status-danger-fg: var(--color-status-danger-fg);
+  --color-status-info: var(--color-status-info);
+  --color-status-info-subtle: var(--color-status-info-subtle);
+  --color-status-info-fg: var(--color-status-info-fg);
+  --color-status-neutral: var(--color-status-neutral);
+  --color-status-neutral-subtle: var(--color-status-neutral-subtle);
+  --color-status-neutral-fg: var(--color-status-neutral-fg);
+
+  /* Chart (fill-chart-1, stroke-chart-grid, …) */
+  --color-chart-1: var(--color-chart-1);
+  --color-chart-2: var(--color-chart-2);
+  --color-chart-3: var(--color-chart-3);
+  --color-chart-4: var(--color-chart-4);
+  --color-chart-grid: var(--color-chart-grid);
+
+  /* Focus (prefer the `focus-ring` utility below) */
+  --color-focus-ring: var(--color-focus-ring);
+
+  /* Radius */
+  --radius-xs: var(--radius-xs);
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
   --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-pill: var(--radius-pill);
 
-  --shadow-sm: var(--shadow-sm);
-  --shadow-md: var(--shadow-md);
+  /* Shadow */
+  --shadow-none: var(--shadow-none);
+  --shadow-overlay: var(--shadow-overlay);
 
+  /* Spacing: Tailwind's 4px scale (--spacing) stays; these add named steps. */
+  --spacing-card: var(--space-card);
+  --spacing-tile: var(--space-tile);
+  --spacing-grid: var(--gap-grid);
+  --spacing-row: var(--row-height);
+  --spacing-control-sm: var(--control-h-sm);
+  --spacing-control-md: var(--control-h-md);
+  --spacing-control-lg: var(--control-h-lg);
+
+  /* Typography */
   --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+
+  --text-xs: var(--font-size-xs);
+  --text-xs--line-height: var(--line-height-xs);
+  --text-sm: var(--font-size-sm);
+  --text-sm--line-height: var(--line-height-sm);
+  --text-base: var(--font-size-base);
+  --text-base--line-height: var(--line-height-base);
+  --text-md: var(--font-size-md);
+  --text-md--line-height: var(--line-height-md);
+  --text-lg: var(--font-size-lg);
+  --text-lg--line-height: var(--line-height-lg);
+  --text-xl: var(--font-size-xl);
+  --text-xl--line-height: var(--line-height-xl);
+  --text-2xl: var(--font-size-2xl);
+  --text-2xl--line-height: var(--line-height-2xl);
+  --text-display-sm: var(--font-size-display-sm);
+  --text-display-sm--line-height: var(--line-height-display-sm);
+  --text-display-sm--letter-spacing: var(--letter-spacing-display);
+  --text-display-sm--font-weight: var(--font-weight-regular);
+  --text-display: var(--font-size-display);
+  --text-display--line-height: var(--line-height-display);
+  --text-display--letter-spacing: var(--letter-spacing-display);
+  --text-display--font-weight: var(--font-weight-regular);
+
+  /* Only three weights exist: font-normal, font-medium, font-semibold. */
+  --font-weight-normal: var(--font-weight-regular);
+  --font-weight-medium: var(--font-weight-medium);
+  --font-weight-semibold: var(--font-weight-semibold);
+
+  /* Motion. Durations have no theme namespace: use duration-(--duration-base). */
+  --ease-standard: var(--ease-standard);
 }
 
 /* `dark:` variant follows the data-theme attribute, not the media query. */
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+/* Hero KPI card background. */
+@utility bg-gradient-accent {
+  background-image: var(--gradient-accent);
+}
+
+/* Keyboard focus outline. Shows on :focus-visible only, never on mouse click. */
+@utility focus-ring {
+  &:focus-visible {
+    outline: var(--focus-ring-width) solid var(--color-focus-ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+}
+
+/* Aligned digits. Use on every number in tables and KPIs. */
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}

@@ -139,7 +139,7 @@ async function run(call: Call, id: number): Promise<CallResult> {
 }
 
 const buttonClass =
-  'rounded-md border border-border bg-surface px-3 py-1.5 text-sm font-medium text-fg-default shadow-sm hover:bg-muted focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none disabled:opacity-60'
+  'h-control-sm rounded-pill bg-surface px-4 text-sm font-medium text-fg focus-ring hover:bg-surface-muted'
 
 export function MockApiExplorer() {
   const [results, setResults] = useState<CallResult[]>([])
@@ -185,25 +185,28 @@ export function MockApiExplorer() {
         {results.map((result) => {
           const ok = typeof result.status === 'number' && result.status < 400
           return (
-            <li
-              key={result.id}
-              className="rounded-lg border border-border bg-surface p-4 shadow-sm"
-            >
+            <li key={result.id} className="rounded-lg bg-surface p-card">
               <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm">
                 <span className="font-semibold">{result.call.label}</span>
-                <span className={ok ? 'font-mono text-success' : 'font-mono text-danger'}>
+                <span
+                  className={
+                    ok ? 'font-mono text-status-success-fg' : 'font-mono text-status-danger-fg'
+                  }
+                >
                   {result.status}
                 </span>
-                {result.code ? <span className="font-mono text-danger">{result.code}</span> : null}
-                <span className="text-fg-muted">{result.ms} ms</span>
+                {result.code ? (
+                  <span className="font-mono text-status-danger-fg">{result.code}</span>
+                ) : null}
+                <span className="text-fg-muted tabular">{result.ms} ms</span>
                 <span className="font-mono text-fg-muted">
                   {result.requestId ?? 'no request id'}
                 </span>
               </div>
-              <p className="font-mono mt-1 text-xs break-all text-fg-muted">
+              <p className="mt-1 font-mono text-xs break-all text-fg-muted">
                 {result.call.method} {result.call.path}
               </p>
-              <pre className="mt-2 rounded-md bg-muted p-3 text-xs break-all whitespace-pre-wrap text-fg-default">
+              <pre className="mt-3 rounded-md bg-surface-subtle p-tile text-xs break-all whitespace-pre-wrap text-fg">
                 {JSON.stringify(result.preview, null, 2)}
               </pre>
             </li>

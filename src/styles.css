@@ -1,10 +1,13 @@
-/* Global stylesheet: imported by the demo app (main.tsx) and Storybook (preview.tsx). */
+/*
+ * Global stylesheet: imported by the demo app (main.tsx) and Storybook
+ * (preview.tsx), each of which also imports the Geist font.
+ */
 @import 'tailwindcss';
 @import './tokens/tokens.css';
 @import './tokens/tailwind-theme.css';
 
 @layer base {
   body {
-    @apply bg-canvas font-sans text-fg-default antialiased;
+    @apply bg-canvas font-sans text-base text-fg antialiased;
   }
 }

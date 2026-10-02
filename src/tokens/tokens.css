@@ -1,127 +1,245 @@
 /*
- * Design tokens.
+ * Design tokens: the values. Names, groups and descriptions live in the
+ * manifest (./tokens.ts); the drift test keeps the two in sync, and the
+ * contrast test guards every text/background pair in both themes.
  *
- * Two layers:
- *   1. Palette  (--palette-*)  raw values. Never referenced by components.
- *   2. Semantic (--color-*, --radius-*, --shadow-*, --font-*)  what UI code
- *      uses, via the Tailwind mapping in ./tailwind-theme.css.
+ * Blocks:
+ *   1. Theme-independent (:root): radius, spacing, typography, focus geometry,
+ *      motion.
+ *   2. Density: comfortable on :root, compact under [data-density='compact'].
+ *   3. Light theme on `:root, [data-theme='light']`, dark on [data-theme='dark'].
+ *      The light selector includes [data-theme='light'] so a light container
+ *      nested inside a dark one (Storybook, the tokens page) resets correctly.
  *
- * Light values live on :root; [data-theme="dark"] overrides the semantic
- * layer only. The palette is theme-independent.
+ * Aliases such as `--color-focus-ring: var(--color-accent)` are declared in
+ * BOTH theme blocks on purpose. A custom property's var() resolves on the
+ * element that declares it, so an alias declared only on :root would carry the
+ * light value into a nested dark container.
+ *
+ * Values adjusted from the Stage 2a starting set to pass the contrast test are
+ * marked "contrast:" with the original value.
  */
 
+/* ── 1. Theme-independent ──────────────────────────────────────────────── */
 :root {
-  /* ── Palette ─────────────────────────────────────────────────────────── */
-  --palette-neutral-0: #ffffff;
-  --palette-neutral-50: #f8fafc;
-  --palette-neutral-100: #f1f5f9;
-  --palette-neutral-200: #e2e8f0;
-  --palette-neutral-300: #cbd5e1;
-  --palette-neutral-400: #94a3b8;
-  --palette-neutral-500: #64748b;
-  --palette-neutral-600: #475569;
-  --palette-neutral-700: #334155;
-  --palette-neutral-800: #1e293b;
-  --palette-neutral-900: #0f172a;
-  --palette-neutral-950: #020617;
+  /* Radius */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  --radius-pill: 9999px;
 
-  --palette-brand-50: #eef2ff;
-  --palette-brand-100: #e0e7ff;
-  --palette-brand-200: #c7d2fe;
-  --palette-brand-400: #818cf8;
-  --palette-brand-500: #6366f1;
-  --palette-brand-600: #4f46e5;
-  --palette-brand-700: #4338ca;
-  --palette-brand-800: #3730a3;
+  /* Spacing (semantic additions; Tailwind's 4px scale stays) */
+  --space-card: 24px;
+  --space-tile: 16px;
+  --gap-grid: 16px;
 
-  --palette-green-50: #f0fdf4;
-  --palette-green-100: #dcfce7;
-  --palette-green-200: #bbf7d0;
-  --palette-green-400: #4ade80;
-  --palette-green-500: #22c55e;
-  --palette-green-600: #16a34a;
-  --palette-green-700: #15803d;
-  --palette-green-800: #166534;
+  /* Typography. Sizes in rem so they follow the user's browser font size. */
+  --font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-  --palette-amber-50: #fffbeb;
-  --palette-amber-100: #fef3c7;
-  --palette-amber-200: #fde68a;
-  --palette-amber-400: #fbbf24;
-  --palette-amber-500: #f59e0b;
-  --palette-amber-600: #d97706;
-  --palette-amber-700: #b45309;
-  --palette-amber-800: #92400e;
+  --font-size-xs: 0.75rem; /* 12px */
+  --line-height-xs: 1rem; /* 16px */
+  --font-size-sm: 0.8125rem; /* 13px */
+  --line-height-sm: 1.125rem; /* 18px */
+  --font-size-base: 0.875rem; /* 14px */
+  --line-height-base: 1.25rem; /* 20px */
+  --font-size-md: 1rem; /* 16px */
+  --line-height-md: 1.5rem; /* 24px */
+  --font-size-lg: 1.125rem; /* 18px */
+  --line-height-lg: 1.625rem; /* 26px */
+  --font-size-xl: 1.375rem; /* 22px */
+  --line-height-xl: 1.75rem; /* 28px */
+  --font-size-2xl: 1.75rem; /* 28px */
+  --line-height-2xl: 2.125rem; /* 34px */
+  --font-size-display-sm: 2.25rem; /* 36px */
+  --line-height-display-sm: 2.5rem; /* 40px */
+  --font-size-display: 3rem; /* 48px */
+  --line-height-display: 3.25rem; /* 52px */
 
-  --palette-red-50: #fef2f2;
-  --palette-red-100: #fee2e2;
-  --palette-red-200: #fecaca;
-  --palette-red-400: #f87171;
-  --palette-red-500: #ef4444;
-  --palette-red-600: #dc2626;
-  --palette-red-700: #b91c1c;
-  --palette-red-800: #991b1b;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --letter-spacing-display: -0.02em;
 
-  --palette-blue-50: #eff6ff;
-  --palette-blue-100: #dbeafe;
-  --palette-blue-200: #bfdbfe;
-  --palette-blue-400: #60a5fa;
-  --palette-blue-500: #3b82f6;
-  --palette-blue-600: #2563eb;
-  --palette-blue-700: #1d4ed8;
-  --palette-blue-800: #1e40af;
+  /* Focus geometry (the color is themed) */
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
 
-  /* ── Semantic (light) ────────────────────────────────────────────────── */
-  color-scheme: light;
+  /* Shadow */
+  --shadow-none: 0 0 #0000;
 
-  --color-bg-canvas: var(--palette-neutral-50);
-  --color-bg-surface: var(--palette-neutral-0);
-  --color-bg-muted: var(--palette-neutral-100);
-
-  --color-fg-default: var(--palette-neutral-900);
-  --color-fg-muted: var(--palette-neutral-600);
-
-  --color-border: var(--palette-neutral-200);
-  --color-accent: var(--palette-brand-600);
-
-  --color-status-success: var(--palette-green-700);
-  --color-status-warning: var(--palette-amber-700);
-  --color-status-danger: var(--palette-red-700);
-  --color-status-info: var(--palette-blue-700);
-
-  --color-focus-ring: var(--palette-brand-500);
-
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-
-  --shadow-sm: 0 1px 2px 0 rgb(15 23 42 / 0.06), 0 1px 3px 0 rgb(15 23 42 / 0.08);
-  --shadow-md: 0 4px 6px -1px rgb(15 23 42 / 0.08), 0 2px 4px -2px rgb(15 23 42 / 0.06);
-
-  --font-sans:
-    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  /* Motion */
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration-base: 0ms;
+  }
+}
+
+/* ── 2. Density ────────────────────────────────────────────────────────── */
+:root,
+[data-density='comfortable'] {
+  --row-height: 52px;
+  --control-h-sm: 32px;
+  --control-h-md: 40px;
+  --control-h-lg: 48px;
+}
+
+[data-density='compact'] {
+  --row-height: 40px;
+  --control-h-sm: 28px;
+  --control-h-md: 34px;
+  --control-h-lg: 40px;
+}
+
+/* ── 3a. Light theme ───────────────────────────────────────────────────── */
+:root,
+[data-theme='light'] {
+  color-scheme: light;
+
+  /* Surface: depth comes from these tone steps, not borders or shadows. */
+  --color-canvas: #f2f1ef;
+  --color-surface: #ffffff;
+  --color-surface-subtle: #f7f6f4;
+  --color-surface-muted: #efeeeb;
+  --color-surface-inverse: #141413;
+
+  /* Text */
+  --color-fg: #141413;
+  --color-fg-muted: #6b6862;
+  --color-fg-subtle: #8f8b84;
+  --color-fg-inverse: #ffffff;
+
+  /* Border */
+  --color-border: #e7e5e1;
+  --color-border-strong: #d6d3ce;
+
+  /* Action */
+  --color-ink: #141413;
+  --color-ink-hover: #2b2a28;
+  --color-ink-fg: #ffffff;
+
+  /* Accent */
+  --color-accent: #e86039; /* contrast: was #E8613A (focus ring vs canvas 2.996) */
+  --color-accent-solid: #c44d25;
+  --color-accent-solid-hover: #ad4220;
+  --color-accent-solid-fg: #ffffff;
+  --color-accent-text: #b9461f;
+  --color-accent-subtle: #fce9e1;
+  --color-accent-subtle-fg: #9a3412;
+  --color-accent-gradient-from: #ed7039; /* contrast: was #F08A5D (white 2.47) */
+  --color-accent-gradient-to: #e2552c;
+  --color-accent-gradient-fg: #ffffff;
+  --gradient-accent: linear-gradient(
+    160deg,
+    var(--color-accent-gradient-from) 0%,
+    var(--color-accent-gradient-to) 100%
+  );
+
+  /* Status */
+  --color-status-success: #1f9d55;
+  --color-status-success-subtle: #e3f5ea;
+  --color-status-success-fg: #166b3b;
+  --color-status-warning: #b7791f;
+  --color-status-warning-subtle: #fdf3dc;
+  --color-status-warning-fg: #8a5a12;
+  --color-status-danger: #d63b2f;
+  --color-status-danger-subtle: #fce6e3;
+  --color-status-danger-fg: #a42a20;
+  --color-status-info: #2f6fdb;
+  --color-status-info-subtle: #e4edfc;
+  --color-status-info-fg: #1f4fa3;
+  --color-status-neutral: #6b6862;
+  --color-status-neutral-subtle: #efeeeb;
+  --color-status-neutral-fg: #4a4843;
+
+  /* Chart */
+  --color-chart-1: var(--color-accent);
+  --color-chart-2: #141413;
+  --color-chart-3: #ed7040; /* contrast: was #F4A98C (vs surface 1.93) */
+  --color-chart-4: #9a948a; /* contrast: was #B8B4AD (vs surface 2.06) */
+  --color-chart-grid: var(--color-border);
+  --color-chart-hatch-fg: #8f8b84;
+  --color-chart-hatch-bg: #efeeeb;
+
+  /* Focus */
+  --color-focus-ring: var(--color-accent);
+
+  /* Shadow: warm-tinted, for floating layers only. */
+  --shadow-overlay: 0 12px 32px -8px rgb(66 38 18 / 0.16), 0 2px 6px rgb(66 38 18 / 0.06);
+}
+
+/* ── 3b. Dark theme ────────────────────────────────────────────────────── */
 [data-theme='dark'] {
-  /* ── Semantic (dark) ─────────────────────────────────────────────────── */
   color-scheme: dark;
 
-  --color-bg-canvas: var(--palette-neutral-950);
-  --color-bg-surface: var(--palette-neutral-900);
-  --color-bg-muted: var(--palette-neutral-800);
+  --color-canvas: #0f0e0d;
+  --color-surface: #1a1918;
+  --color-surface-subtle: #222120;
+  --color-surface-muted: #2a2927;
+  --color-surface-inverse: #f5f4f2;
 
-  --color-fg-default: var(--palette-neutral-50);
-  --color-fg-muted: var(--palette-neutral-400);
+  --color-fg: #f5f4f2;
+  --color-fg-muted: #a8a49d;
+  --color-fg-subtle: #7d7972;
+  --color-fg-inverse: #141413;
 
-  --color-border: var(--palette-neutral-700);
-  --color-accent: var(--palette-brand-400);
+  --color-border: #2f2d2b;
+  --color-border-strong: #3d3b38;
 
-  --color-status-success: var(--palette-green-400);
-  --color-status-warning: var(--palette-amber-400);
-  --color-status-danger: var(--palette-red-400);
-  --color-status-info: var(--palette-blue-400);
+  --color-ink: #f5f4f2;
+  --color-ink-hover: #e4e2de;
+  --color-ink-fg: #141413;
 
-  --color-focus-ring: var(--palette-brand-400);
+  --color-accent: #ef5f31; /* contrast: was #F06D43 (chart-1 vs chart-2 2.74) */
+  --color-accent-solid: #f06d43;
+  --color-accent-solid-hover: #f5825d;
+  --color-accent-solid-fg: #141413;
+  --color-accent-text: #f5885f;
+  --color-accent-subtle: #3a2118;
+  --color-accent-subtle-fg: #f7a584;
+  --color-accent-gradient-from: #ef6e38; /* contrast: was #F2875A (white 2.50) */
+  --color-accent-gradient-to: #d9532b;
+  --color-accent-gradient-fg: #ffffff;
+  --gradient-accent: linear-gradient(
+    160deg,
+    var(--color-accent-gradient-from) 0%,
+    var(--color-accent-gradient-to) 100%
+  );
 
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.4), 0 1px 3px 0 rgb(0 0 0 / 0.3);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.45), 0 2px 4px -2px rgb(0 0 0 / 0.35);
+  --color-status-success: #3dcb7a;
+  --color-status-success-subtle: #12301f;
+  --color-status-success-fg: #7fe0a6;
+  --color-status-warning: #e9a23b;
+  --color-status-warning-subtle: #33270f;
+  --color-status-warning-fg: #f2c47a;
+  --color-status-danger: #f0645a;
+  --color-status-danger-subtle: #3a1714;
+  --color-status-danger-fg: #f7a19a;
+  --color-status-info: #6a9cf0;
+  --color-status-info-subtle: #16233b;
+  --color-status-info-fg: #a9c4f6;
+  --color-status-neutral: #a8a49d;
+  --color-status-neutral-subtle: #2a2927;
+  --color-status-neutral-fg: #d3d0ca;
+
+  --color-chart-1: var(--color-accent);
+  --color-chart-2: #f5f4f2;
+  --color-chart-3: #995239; /* contrast: was #8A4A33 (vs surface 2.60) */
+  --color-chart-4: #68655f; /* contrast: was #5A5752 (vs surface 2.44) */
+  --color-chart-grid: var(--color-border);
+  --color-chart-hatch-fg: #7d7972;
+  --color-chart-hatch-bg: #2a2927;
+
+  --color-focus-ring: var(--color-accent);
+
+  /* Much weaker than light: on dark, tone carries depth and shadows barely read. */
+  --shadow-overlay: 0 8px 24px -12px rgb(0 0 0 / 0.32);
 }

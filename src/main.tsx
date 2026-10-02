@@ -3,7 +3,9 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { App } from '@/app/App'
 import { isApiError } from '@/lib/api'
+import { initDensity } from '@/tokens/density'
 import { initTheme } from '@/tokens/theme'
+import '@fontsource-variable/geist/wght.css'
 import '@/styles.css'
 
 const MAX_RETRIES = 2
@@ -31,6 +33,7 @@ async function enableMocking(): Promise<void> {
 }
 
 initTheme()
+initDensity()
 
 void enableMocking().then(() => {
   const root = document.getElementById('root')

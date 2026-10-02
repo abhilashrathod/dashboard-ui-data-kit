@@ -28,6 +28,7 @@ afterEach(() => {
     // Not every test environment exposes storage.
   }
   delete document.documentElement.dataset.theme
+  delete document.documentElement.dataset.density
 })
 
 afterAll(() => {

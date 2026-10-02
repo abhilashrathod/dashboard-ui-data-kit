@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type * as ThemeModule from './theme'
+import type * as ThemeModule from '../theme'
 
 /** jsdom has no matchMedia; this stub reports a controllable prefers-color-scheme. */
 function mockSystemTheme(initial: 'light' | 'dark') {
@@ -33,7 +33,7 @@ describe('theme', () => {
   beforeEach(async () => {
     // The module caches the preference, so each test gets a fresh instance.
     vi.resetModules()
-    theme = await import('./theme')
+    theme = await import('../theme')
   })
 
   it('sets data-theme on <html> and persists the choice', () => {

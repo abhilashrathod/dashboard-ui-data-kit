@@ -22,7 +22,7 @@ export function OrdersCard() {
   } else if (orders.isError) {
     const error = orders.error
     status = (
-      <span className="text-danger">
+      <span className="text-status-danger-fg">
         Orders API error: {isApiError(error) ? error.code : 'UNKNOWN'}
         {isApiError(error) && error.requestId ? ` · ${error.requestId}` : ''}
       </span>
@@ -32,10 +32,7 @@ export function OrdersCard() {
   }
 
   return (
-    <section
-      aria-labelledby="orders-title"
-      className="rounded-lg border border-border bg-surface p-6 shadow-sm"
-    >
+    <section aria-labelledby="orders-title" className="rounded-lg bg-surface p-card">
       <div className="flex items-center justify-between gap-4">
         <h2 id="orders-title" className="text-sm font-medium text-fg-muted">
           Orders
@@ -44,12 +41,12 @@ export function OrdersCard() {
           type="button"
           onClick={() => void orders.refetch()}
           disabled={orders.isFetching}
-          className="rounded-md border border-border px-2 py-1 text-xs font-medium text-fg-default hover:bg-muted focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none disabled:opacity-60"
+          className="h-control-sm rounded-pill border border-border-strong px-3 text-sm font-medium text-fg focus-ring hover:bg-surface-muted disabled:text-fg-muted"
         >
           {orders.isFetching ? 'Refreshing…' : 'Refresh'}
         </button>
       </div>
-      <p className="mt-2 text-lg font-semibold" aria-live="polite">
+      <p className="mt-2 text-lg font-semibold tabular" aria-live="polite">
         {status}
       </p>
       <p className="mt-1 text-sm text-fg-muted">

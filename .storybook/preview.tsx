@@ -13,6 +13,7 @@ import {
   resetNetworkConfig,
   setNetworkConfig,
 } from '@/mocks/network'
+import '@fontsource-variable/geist/wght.css'
 import '@/styles.css'
 
 /**
@@ -82,6 +83,18 @@ export default definePreview({
         dynamicTitle: true,
       },
     },
+    density: {
+      description: 'Spacing density (data-density)',
+      toolbar: {
+        title: 'Density',
+        icon: 'component',
+        items: [
+          { value: 'comfortable', title: 'Comfortable' },
+          { value: 'compact', title: 'Compact' },
+        ],
+        dynamicTitle: true,
+      },
+    },
     network: {
       description: 'Simulated network for the mock API',
       toolbar: {
@@ -92,7 +105,7 @@ export default definePreview({
       },
     },
   },
-  initialGlobals: { theme: 'light', network: 'normal' },
+  initialGlobals: { theme: 'light', density: 'comfortable', network: 'normal' },
 
   parameters: {
     layout: 'fullscreen',
@@ -111,7 +124,8 @@ export default definePreview({
     (Story, { globals }) => (
       <div
         data-theme={globals.theme === 'dark' ? 'dark' : 'light'}
-        className="min-h-screen bg-canvas p-6 font-sans text-fg-default"
+        data-density={globals.density === 'compact' ? 'compact' : 'comfortable'}
+        className="min-h-screen bg-canvas p-6 font-sans text-base text-fg"
       >
         <Story />
       </div>
