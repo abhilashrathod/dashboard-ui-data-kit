@@ -1,4 +1,5 @@
 import addonA11y from '@storybook/addon-a11y'
+import addonDocs from '@storybook/addon-docs'
 import addonVitest from '@storybook/addon-vitest'
 import { definePreview } from '@storybook/react-vite'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -50,6 +51,7 @@ function StoryQueryProvider({ children }: { children: ReactNode }) {
 export default definePreview({
   addons: [
     addonA11y(),
+    addonDocs(),
     addonVitest(),
     // Custom setup: registers the shared `handlers` as initial handlers (they
     // survive the addon's per-story reset).

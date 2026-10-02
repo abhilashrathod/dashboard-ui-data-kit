@@ -96,6 +96,21 @@ export const CONTRAST_PAIRS: ContrastPair[] = [
     { fg: `--color-status-${status}`, bg: '--color-surface', min: 3, kind: 'graphic' },
   ]),
 
+  // Pairings introduced by the Stage 2b components.
+  // Danger Button: fg-inverse text on the status-danger fill.
+  { fg: '--color-fg-inverse', bg: '--color-status-danger', min: 4.5, kind: 'text' },
+  // Outline Badge: status text straight on the card.
+  ...STATUSES.map((status): ContrastPair => ({
+    fg: `--color-status-${status}-fg`,
+    bg: '--color-surface',
+    min: 4.5,
+    kind: 'text',
+  })),
+  // Invalid Input: the danger edge on the surface-subtle pill.
+  { fg: '--color-status-danger', bg: '--color-surface-subtle', min: 3, kind: 'graphic' },
+  // Checkbox box edge (unchecked) on the card.
+  { fg: '--color-fg-muted', bg: '--color-surface-subtle', min: 3, kind: 'graphic' },
+
   { fg: '--color-focus-ring', bg: '--color-surface', min: 3, kind: 'graphic' },
   { fg: '--color-focus-ring', bg: '--color-canvas', min: 3, kind: 'graphic' },
 

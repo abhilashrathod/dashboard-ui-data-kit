@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { DEFAULT_LIST_PARAMS, listParamsKey } from '@/contracts'
+import { Button, Card } from '@/components'
 import { fetchOrders, isApiError } from '@/lib/api'
 
 const count = new Intl.NumberFormat('en-US')
@@ -32,26 +33,31 @@ export function OrdersCard() {
   }
 
   return (
-    <section aria-labelledby="orders-title" className="rounded-lg bg-surface p-card">
-      <div className="flex items-center justify-between gap-4">
-        <h2 id="orders-title" className="text-sm font-medium text-fg-muted">
+    <Card role="region" aria-labelledby="orders-title">
+      <Card.Header
+        actions={
+          <Button
+            variant="outline"
+            size="sm"
+            loading={orders.isFetching}
+            onClick={() => void orders.refetch()}
+          >
+            Refresh
+          </Button>
+        }
+      >
+        <Card.Title as="h2" id="orders-title" className="text-sm font-medium text-fg-muted">
           Orders
-        </h2>
-        <button
-          type="button"
-          onClick={() => void orders.refetch()}
-          disabled={orders.isFetching}
-          className="h-control-sm rounded-pill border border-border-strong px-3 text-sm font-medium text-fg focus-ring hover:bg-surface-muted disabled:text-fg-muted"
-        >
-          {orders.isFetching ? 'Refreshing…' : 'Refresh'}
-        </button>
-      </div>
-      <p className="mt-2 text-lg font-semibold tabular" aria-live="polite">
-        {status}
-      </p>
-      <p className="mt-1 text-sm text-fg-muted">
-        <code>GET /api/orders</code> via the API client, served by MSW.
-      </p>
-    </section>
+        </Card.Title>
+      </Card.Header>
+      <Card.Body>
+        <p className="text-lg font-semibold tabular" aria-live="polite">
+          {status}
+        </p>
+        <p className="mt-1 text-sm text-fg-muted">
+          <code>GET /api/orders</code> via the API client, served by MSW.
+        </p>
+      </Card.Body>
+    </Card>
   )
 }

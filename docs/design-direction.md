@@ -20,7 +20,7 @@ A warm, soft, rounded dashboard: orange and near-black on a warm off-white canva
 - **Chart colors are pinned to the same contrast band.** Every series color is at least 3:1 against the card, so pastel series are out. As a result, light-mode chart-3 and chart-4 are close in lightness to chart-1, so series must also be separated by position, labels or hatching, never by color alone.
 - **Visible focus everywhere.** A 2px orange outline with a 2px offset, `:focus-visible` only, at least 3:1 against both the card and the canvas.
 - **Reduced motion is respected.** Under `prefers-reduced-motion: reduce`, durations become 0ms.
-- **Open item: input outlines.** `border-strong` (about 1.5:1) is a soft outline. Buttons are identified by their text, but a text input's boundary should reach 3:1 (WCAG 1.4.11). The forms stage must give inputs a stronger edge or another clear affordance.
+- **Input outlines (decided in Stage 2b).** At rest, an `Input` is a surface-subtle pill with no ≥3:1 edge. It's identified by its required label, its placeholder and its icon instead (see [component-conventions.md](component-conventions.md)). The edge (`border-strong`) and the focus ring appear on hover and focus, and invalid inputs get a `status-danger` edge (4.3:1). If an audit requires a resting 3:1 boundary, switch the resting border to `fg-subtle`.
 
 ## How to add a token
 

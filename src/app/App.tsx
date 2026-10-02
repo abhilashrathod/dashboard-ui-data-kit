@@ -1,3 +1,4 @@
+import { Button } from '@/components'
 import { useTheme } from '@/tokens/theme'
 import { OrdersCard } from './OrdersCard'
 
@@ -6,13 +7,9 @@ function ThemeToggle() {
   const next = resolvedTheme === 'dark' ? 'light' : 'dark'
 
   return (
-    <button
-      type="button"
-      onClick={() => setTheme(next)}
-      className="h-control-md rounded-pill bg-surface-muted px-4 text-base font-medium text-fg focus-ring hover:bg-surface-subtle"
-    >
+    <Button variant="secondary" onClick={() => setTheme(next)}>
       Switch to {next} theme
-    </button>
+    </Button>
   )
 }
 

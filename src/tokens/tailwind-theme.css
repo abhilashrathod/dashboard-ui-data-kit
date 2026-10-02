@@ -150,6 +150,32 @@
 /* `dark:` variant follows the data-theme attribute, not the media query. */
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
+/*
+ * Hover that never fires on a disabled or busy control, and only on devices
+ * that can hover. Components use this instead of `hover:`.
+ */
+@custom-variant hover-enabled {
+  @media (hover: hover) {
+    &:hover:not(:disabled, [data-disabled], [data-loading], [aria-disabled='true']) {
+      @slot;
+    }
+  }
+}
+
+/* Skeleton shimmer. Duration derives from the motion tokens (0ms under reduced motion). */
+@theme inline {
+  --animate-shimmer: shimmer calc(var(--duration-base) * 8) var(--ease-standard) infinite;
+
+  @keyframes shimmer {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(100%);
+    }
+  }
+}
+
 /* Hero KPI card background. */
 @utility bg-gradient-accent {
   background-image: var(--gradient-accent);
@@ -158,6 +184,14 @@
 /* Keyboard focus outline. Shows on :focus-visible only, never on mouse click. */
 @utility focus-ring {
   &:focus-visible {
+    outline: var(--focus-ring-width) solid var(--color-focus-ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+}
+
+/* The focus ring on a wrapper (e.g. the Input pill) when its own <input> has keyboard focus. */
+@utility focus-ring-within {
+  &:has(> :is(input, textarea, select):focus-visible) {
     outline: var(--focus-ring-width) solid var(--color-focus-ring);
     outline-offset: var(--focus-ring-offset);
   }

@@ -59,6 +59,34 @@ export default defineConfig([
     },
   },
 
+  // Components export their cva variants (and StatusPill its status map) next to
+  // the component, by convention (docs/component-conventions.md). Editing one of
+  // these triggers a full reload instead of fast refresh, which is acceptable.
+  {
+    files: ['src/components/**/*.tsx'],
+    rules: {
+      'react-refresh/only-export-components': [
+        'error',
+        {
+          allowExportNames: [
+            'buttonVariants',
+            'iconButtonVariants',
+            'inputVariants',
+            'checkboxVariants',
+            'badgeVariants',
+            'badgeDotVariants',
+            'ORDER_STATUS_DISPLAY',
+            'deltaChipVariants',
+            'cardVariants',
+            'amountVariants',
+            'spinnerVariants',
+            'skeletonVariants',
+          ],
+        },
+      ],
+    },
+  },
+
   // Story files and Storybook config export non-components by design.
   {
     files: ['**/*.stories.tsx', '.storybook/**/*.tsx', 'src/test/**/*.tsx'],

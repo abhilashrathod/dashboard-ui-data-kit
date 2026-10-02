@@ -9,4 +9,11 @@ Rules:
 - Compose class names with `cn()` from `@/lib/cn`.
 - Every component ships a story; stories double as tests (play functions + a11y checks run in `pnpm test`).
 
-Empty so far. The data table, filters, charts and forms arrive in later stages.
+Conventions: [docs/component-conventions.md](../../docs/component-conventions.md). Import from the barrel: `import { Button, Card } from '@/components'`.
+
+- Actions: `Button`, `IconButton`
+- Inputs: `Input`, `SearchInput`, `Checkbox`
+- Display: `Badge`, `StatusPill`, `DeltaChip`, `Amount`, `Card`
+- Feedback: `Spinner`, `Skeleton`, `SkeletonText`, `VisuallyHidden`
+
+Radix-based primitives (menus, dialogs, popovers, switch) arrive in Stage 2c. The data table, filters, charts and forms come later.
