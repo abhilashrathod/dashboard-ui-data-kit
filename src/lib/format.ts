@@ -79,6 +79,14 @@ export function formatDate(
   return Number.isNaN(date.getTime()) ? '—' : dates[style].format(date)
 }
 
+const time = new Intl.DateTimeFormat(LOCALE, { timeStyle: 'short', timeZone: 'UTC' })
+
+/** An ISO timestamp's time of day, "2:05 PM" (UTC, like formatDate). Invalid input → "—". */
+export function formatTime(iso: string): string {
+  const date = new Date(iso)
+  return Number.isNaN(date.getTime()) ? '—' : time.format(date)
+}
+
 const relative = new Intl.RelativeTimeFormat(LOCALE, { numeric: 'auto' })
 
 const RELATIVE_STEPS = [

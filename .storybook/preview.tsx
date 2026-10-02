@@ -17,6 +17,7 @@ import {
   resetNetworkConfig,
   setNetworkConfig,
 } from '@/mocks/network'
+import { setDensity } from '@/tokens/density'
 import '@fontsource-variable/geist/wght.css'
 import '@/styles.css'
 
@@ -87,7 +88,9 @@ function DocumentGlobals({
   useLayoutEffect(() => {
     const root = document.documentElement
     root.dataset.theme = theme
-    root.dataset.density = density
+    // Through the density store (not just the attribute), so controls that
+    // read it, like DataTable.DensityToggle, agree with the toolbar.
+    setDensity(density)
     return () => {
       delete root.dataset.theme
       delete root.dataset.density

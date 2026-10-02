@@ -37,6 +37,7 @@ export function StaleBanner({ updatedAt, onRetry, className }: StaleBannerProps)
 
   return (
     <div
+      data-slot="stale-banner"
       className={cn(
         'flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md bg-status-warning-subtle px-3 py-1.5 text-sm text-status-warning-fg',
         className,

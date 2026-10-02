@@ -1,6 +1,6 @@
 import { Button } from '@/components'
+import { OrdersTable } from '@/features/orders/OrdersTable'
 import { useTheme } from '@/tokens/theme'
-import { OrdersCard } from './OrdersCard'
 
 function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme()
@@ -18,14 +18,20 @@ export function App() {
     <div className="min-h-screen bg-canvas text-fg">
       <header className="mx-auto max-w-6xl px-6 pt-6">
         <div className="flex items-center justify-between gap-4 rounded-xl bg-surface px-card py-4">
-          <h1 className="text-lg font-semibold">Dashboard UI Kit</h1>
+          <p className="text-lg font-semibold">Dashboard UI Kit</p>
           <ThemeToggle />
         </div>
       </header>
-      <main className="mx-auto max-w-6xl px-6 py-6">
-        <div className="grid gap-grid sm:grid-cols-2 lg:grid-cols-3">
-          <OrdersCard />
+      <main className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-6">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-xl font-semibold">Orders</h1>
+          <p className="text-fg-muted">
+            Every order across channels. Sort, page and search live in the URL, so any view can be
+            shared or bookmarked.
+          </p>
         </div>
+        {/* The full dashboard shell (navigation, KPIs, charts) is Stage 8. */}
+        <OrdersTable gridClassName="max-h-[min(70vh,48rem)]" />
       </main>
     </div>
   )

@@ -88,15 +88,21 @@ export default defineConfig([
             'useAnnounce',
             'emptyStateVariants',
             'ERROR_COPY',
+            'avatarVariants',
           ],
         },
       ],
     },
   },
 
-  // Story files and Storybook config export non-components by design.
+  // Story files, Storybook config and test helpers export non-components by design.
   {
-    files: ['**/*.stories.tsx', '.storybook/**/*.tsx', 'src/test/**/*.tsx'],
+    files: [
+      '**/*.stories.tsx',
+      '.storybook/**/*.tsx',
+      'src/test/**/*.tsx',
+      '**/__tests__/**/*.tsx',
+    ],
     rules: { 'react-refresh/only-export-components': 'off' },
   },
 
