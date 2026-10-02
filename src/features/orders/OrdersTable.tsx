@@ -31,6 +31,7 @@ export function OrdersTable({ namespace = 'orders', gridClassName }: OrdersTable
         <DataTable.Toolbar>
           <DataTable.Search />
           <DataTable.ColumnToggle slot="end" />
+          <DataTable.Export slot="end" />
           <DataTable.DensityToggle slot="end" />
         </DataTable.Toolbar>
         <DataTable.Grid className={gridClassName} />

@@ -47,7 +47,12 @@ export interface DataColumnWidth {
  * Everything the kit knows about a column, in one place. Headers, the toolbar,
  * filters and CSV export all read this; nothing is configured twice.
  */
-export interface DataColumnMeta {
+/** What a column puts in a CSV cell. null / undefined → an empty field. */
+export type CsvValue = string | number | null | undefined
+
+/** `row` is typed as the table's row; `any` by default so ColumnLike can hold any column. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export interface DataColumnMeta<TData = any> {
   /** Required. Header text, the column toggle (4b), CSV headers (4c) and announcements. */
   label: string
   /** 'end' for numbers, so digits line up. Default 'start'. */
@@ -58,10 +63,11 @@ export interface DataColumnMeta {
   /** Can the user hide it with DataTable.ColumnToggle? Default true. */
   hideable?: boolean
   /**
-   * CSV export (4c). `false` leaves the column out (the selection column).
-   * Placeholder: 4c widens it to an object (header, value) for exported columns.
+   * CSV export (DataTable.Export). Absent: the column's raw accessor value (not
+   * the formatted cell). A function: the export value. `false`: left out (the
+   * selection column). The CSV header is always `label`.
    */
-  csv?: false
+  csv?: false | ((row: TData) => CsvValue)
   // filter?: DataColumnFilter  (Stage 6: the filter UI and how it maps onto a FilterField)
 }
 
@@ -72,7 +78,7 @@ declare module '@tanstack/react-table' {
     in out TFeatures extends TableFeatures,
     in out TData extends RowData,
     TValue extends CellData = CellData,
-  > extends DataColumnMeta {}
+  > extends DataColumnMeta<TData> {}
 }
 /* eslint-enable @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-object-type */
 
@@ -86,7 +92,7 @@ export function createColumnHelper<TData extends RowData>(): ColumnHelper<
   return createTanstackColumnHelper<DataTableFeatures, TData>()
 }
 
-type WithMeta<T> = T & { meta: DataColumnMeta }
+type WithMeta<T, TData> = T & { meta: DataColumnMeta<TData> }
 
 /**
  * `helper.accessor`, except `meta` (and so `meta.label`) is required:
@@ -108,8 +114,8 @@ export function dataColumn<
   helper: ColumnHelper<DataTableFeatures, TData>,
   accessor: TAccessor,
   column: TAccessor extends AccessorFn<TData>
-    ? WithMeta<DisplayColumnDef<DataTableFeatures, TData, TValue>>
-    : WithMeta<IdentifiedColumnDef<DataTableFeatures, TData, TValue>>,
+    ? WithMeta<DisplayColumnDef<DataTableFeatures, TData, TValue>, TData>
+    : WithMeta<IdentifiedColumnDef<DataTableFeatures, TData, TValue>, TData>,
 ): TAccessor extends AccessorFn<TData>
   ? AccessorFnColumnDef<DataTableFeatures, TData, TValue>
   : AccessorKeyColumnDef<DataTableFeatures, TData, TValue> {

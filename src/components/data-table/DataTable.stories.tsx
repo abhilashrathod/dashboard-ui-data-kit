@@ -1,4 +1,4 @@
-import { expect, waitFor, within } from 'storybook/test'
+import { expect, spyOn, waitFor, within } from 'storybook/test'
 import preview, { type NetworkParameter, storyUrl } from '../../../.storybook/preview'
 import { openOverlayA11y } from '@/dev/a11y'
 import { DataTableDemo } from '@/dev/data-table-demo/DataTableDemo'
@@ -505,5 +505,125 @@ export const ColumnsMenuDarkCompact = meta.story({
     await userEvent.click(canvas.getByRole('button', { name: 'Columns' }))
     const menu = await body().findByRole('menu')
     await waitFor(() => expect(menu).toBeVisible()) // after the enter animation
+  },
+})
+
+// ── 4c: CSV export ──────────────────────────────────────────────────────────
+
+/**
+ * Captures what Export downloads: the Blob handed to URL.createObjectURL
+ * (the real one still runs), with the link click stubbed so no file is saved.
+ * Returns the BOM flag and the text after it.
+ */
+function captureDownloads() {
+  const blobs: Blob[] = []
+  const create = spyOn(URL, 'createObjectURL').mockImplementation((object) => {
+    blobs.push(object as Blob)
+    return 'blob:story-export'
+  })
+  const revoke = spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
+  const click = spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+  return {
+    count: () => blobs.length,
+    last: async () => {
+      const bytes = new Uint8Array(await blobs.at(-1)!.arrayBuffer())
+      const text = new TextDecoder('utf-8', { ignoreBOM: true }).decode(bytes)
+      return {
+        bom: text.startsWith('\uFEFF'),
+        lines: text.replace(/^\uFEFF/, '').split('\r\n'),
+        text,
+      }
+    },
+    restore: () => {
+      create.mockRestore()
+      revoke.mockRestore()
+      click.mockRestore()
+    },
+  }
+}
+
+/** The toast list (Radix's viewport, "Notifications"), not the announcer's hidden copy of the text. */
+const toastWith = (text: string) =>
+  waitFor(
+    () =>
+      expect(
+        within(body().getByRole('region', { name: /Notifications/ })).getByText(text),
+      ).toBeVisible(),
+    TIMEOUT,
+  )
+
+const idOf = (box: HTMLElement) => box.getAttribute('aria-label')!.replace('Select order ', '')
+
+/**
+ * Export the page (BOM, header = the visible columns, 50 rows, CRLF), with
+ * Channel hidden (no Channel column), and a selection across two pages.
+ */
+export const ExportCsv = meta.story({
+  play: async ({ canvas, userEvent, step }) => {
+    const downloads = captureDownloads()
+    try {
+      await settled()
+
+      await step('Export the page', async () => {
+        await userEvent.click(canvas.getByRole('button', { name: 'Export' }))
+        const { bom, lines, text } = await downloads.last()
+        await expect(bom).toBe(true)
+        await expect(lines[0]).toBe('Order,Customer,Status,Channel,Items,Amount,Created')
+        await expect(lines).toHaveLength(1 + 50 + 1) // header + rows + the empty string after the final CRLF
+        await expect(lines.at(-1)).toBe('')
+        await expect(text.replaceAll('\r\n', '').includes('\n')).toBe(false) // CRLF only
+        await expect(lines[1]).toMatch(/^ORD-\d{6},[^,]+ <[^>]+>,\w+,\w+,\d+,\d+\.\d{2},\d{4}-/)
+        await toastWith('Exported 50 orders')
+      })
+
+      await step('Hide Channel: the export follows', async () => {
+        await userEvent.click(canvas.getByRole('button', { name: 'Columns' }))
+        await userEvent.click(await body().findByRole('menuitemcheckbox', { name: 'Channel' }))
+        await userEvent.keyboard('{Escape}')
+        await menuClosed()
+        await userEvent.click(canvas.getByRole('button', { name: 'Export' }))
+        const { lines } = await downloads.last()
+        await expect(lines[0]).toBe('Order,Customer,Status,Items,Amount,Created')
+      })
+
+      await step('Export a selection across two pages', async () => {
+        const picked: string[] = []
+        for (const index of [0, 2, 4]) {
+          const box = rowBoxes()[index]!
+          picked.push(idOf(box))
+          await userEvent.click(box)
+        }
+        await userEvent.click(canvas.getByRole('button', { name: 'Next page' }))
+        await settled()
+        for (const index of [1, 3]) {
+          const box = rowBoxes()[index]!
+          picked.push(idOf(box))
+          await userEvent.click(box)
+        }
+
+        await userEvent.click(canvas.getByRole('button', { name: 'Export' }))
+        await userEvent.click(await body().findByRole('menuitem', { name: 'Export selected (5)' }))
+        const { lines } = await downloads.last()
+        const rows = lines.slice(1, -1)
+        await expect(rows).toHaveLength(5)
+        await expect(rows.map((line) => line.split(',')[0]).sort()).toEqual([...picked].sort())
+        // Page 2 is on screen, so its two rows come first, in page order.
+        await expect(rows.slice(0, 2).map((line) => line.split(',')[0])).toEqual(picked.slice(3))
+        await toastWith('Exported 5 orders')
+      })
+    } finally {
+      downloads.restore()
+    }
+  },
+})
+
+/** Nothing to export: the button is disabled (focusable) and says why. */
+export const ExportUnavailable = meta.story({
+  parameters: { network: { mode: 'empty' } satisfies NetworkParameter },
+  play: async ({ canvas }) => {
+    await canvas.findByText('No orders yet', {}, TIMEOUT)
+    const button = canvas.getByRole('button', { name: 'Export' })
+    await expect(button).toHaveAttribute('aria-disabled', 'true')
+    await expect(button).toHaveAccessibleDescription('There are no orders to export')
   },
 })

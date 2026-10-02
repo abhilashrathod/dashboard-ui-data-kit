@@ -23,6 +23,19 @@ describe('dataColumn', () => {
     expect(amount.meta?.label).toBe('Amount')
   })
 
+  it('types meta.csv against the row', () => {
+    const column = dataColumn(helper, 'amount', {
+      meta: { label: 'Amount', csv: (order) => order.amount.toFixed(2) },
+    })
+    /* eslint-disable @typescript-eslint/no-unsafe-return -- the point is that this doesn't type */
+    const typeOnly = () =>
+      // @ts-expect-error: the row is an Order, which has no `total`
+      dataColumn(helper, 'amount', { meta: { label: 'Amount', csv: (order) => order.total } })
+    /* eslint-enable @typescript-eslint/no-unsafe-return */
+    expect(typeOnly).toBeTypeOf('function')
+    expect(column.meta?.csv).toBeTypeOf('function')
+  })
+
   it('uses the label as the header text', () => {
     const column = dataColumn(helper, 'status', { meta: { label: 'Status' } })
     expect(column.header).toBe('Status')

@@ -5,6 +5,7 @@ import { DataTableContext } from './context'
 import { DataTableBulkBar } from './DataTableBulkBar'
 import { DataTableColumnToggle } from './DataTableColumnToggle'
 import { DataTableDensityToggle } from './DataTableDensityToggle'
+import { DataTableExport } from './DataTableExport'
 import { DataTableGrid } from './DataTableGrid'
 import { DataTablePagination } from './DataTablePagination'
 import { DataTableSearch } from './DataTableSearch'
@@ -65,6 +66,7 @@ export function DataTable<TData extends RowData>({
 
 DataTable.Toolbar = DataTableToolbar
 DataTable.ColumnToggle = DataTableColumnToggle
+DataTable.Export = DataTableExport
 DataTable.BulkBar = DataTableBulkBar
 DataTable.Search = DataTableSearch
 DataTable.DensityToggle = DataTableDensityToggle

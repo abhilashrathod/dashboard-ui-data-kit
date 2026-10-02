@@ -143,3 +143,13 @@ export function minTableWidth(columns: readonly ColumnLike[]): number {
 export const PAGE_SIZE_OPTIONS = [25, 50, 100, 500] as const
 
 export const SEARCH_DEBOUNCE_MS = 300
+
+/** "Orders" → "order": the singular row noun, from the table label. */
+export function singularNoun(label: string): string {
+  return label.toLowerCase().replace(/s$/, '')
+}
+
+/** "1 order", "50 orders", from the table label ("Orders"). */
+export function countOf(count: number, label: string): string {
+  return `${count.toLocaleString('en-US')} ${count === 1 ? singularNoun(label) : label.toLowerCase()}`
+}

@@ -12,11 +12,14 @@ export { DataTable, type DataTableProps } from './DataTable'
 export { DataTableBulkBar, type DataTableBulkBarProps } from './DataTableBulkBar'
 export { DataTableColumnToggle, type DataTableColumnToggleProps } from './DataTableColumnToggle'
 export { DataTableDensityToggle, type DataTableDensityToggleProps } from './DataTableDensityToggle'
+export { DataTableExport, type DataTableExportProps } from './DataTableExport'
+export { buildCsvColumns, selectedRowsForExport } from './exportColumns'
 export { DataTableGrid, type DataTableGridProps } from './DataTableGrid'
 export { DataTablePagination, type DataTablePaginationProps } from './DataTablePagination'
 export { DataTableSearch, type DataTableSearchProps } from './DataTableSearch'
 export { DataTableToolbar, type ToolbarSlot } from './DataTableToolbar'
 export {
+  countOf,
   gridTemplateColumns,
   nextSortAction,
   PAGE_SIZE_OPTIONS,

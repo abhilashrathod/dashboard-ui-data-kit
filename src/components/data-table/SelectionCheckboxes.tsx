@@ -1,10 +1,8 @@
 import type { MouseEvent } from 'react'
 import { Checkbox } from '../checkbox'
 import { useDataTableContext } from './context'
+import { singularNoun } from './model'
 import { pageSelectionState } from './selection'
-
-/** "Orders" → "order": the default row noun. Pass getRowLabel for anything irregular. */
-const singular = (label: string) => label.toLowerCase().replace(/s$/, '')
 
 /** Header: checked when the whole page is selected, mixed when part of it is. */
 export function SelectPageCheckbox() {
@@ -32,7 +30,7 @@ export function SelectRowCheckbox({ id }: { id: string }) {
   const { table, label } = useDataTableContext('Grid')
   const { selection, getRowLabel } = table
   const row = table.rows.find((candidate) => candidate.id === id)?.original
-  const name = (row !== undefined && getRowLabel?.(row)) || `${singular(label)} ${id}`
+  const name = (row !== undefined && getRowLabel?.(row)) || `${singularNoun(label)} ${id}`
 
   return (
     <Checkbox
