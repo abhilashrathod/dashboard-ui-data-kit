@@ -4,7 +4,7 @@ A documented React kit for data-heavy dashboards: server-driven tables, URL-sync
 
 ![Overview](docs/screenshots/overview-light.png)
 
-**[Live demo](https://dashboard-kit-demo-puce.vercel.app** · **[Storybook](STORYBOOK_URL)** · **[Loom walkthrough](LOOM_URL)**
+**[Live demo](https://dashboard-kit-demo-puce.vercel.app)** · **[Storybook](https://dashboard-kit-storybook.vercel.app)** · **[Loom walkthrough](LOOM_URL)**
 
 The mock API runs in the browser (MSW). No backend is needed.
 
@@ -85,7 +85,7 @@ Every client admin panel needs the same hard parts: big tables, filters that sur
 
 **My answer:** The URL is the only copy of list state. Components read it through `useSyncExternalStore` and write it from event handlers; the table's sort and paging are derived from it on every render, never copied. The query key is the canonical encoding of the params, so a reordered link hits the same cache entry, and the layer's one layout effect only rewrites a messy URL to that spelling, once, with `replace`. Filters `push` history, typing `replace`s it, stale requests are cancelled and the next page is prefetched.
 
-**See it:** [shared link](https://dashboard-kit-demo-puce.vercel.app?view=orders&orders.f=status:in:paid&orders.f=amount:gt:1000&orders.sort=-amount) · Storybook → [Data/URL ↔ Query](STORYBOOK_URL/?path=/story/data-url-query--default) (live request log) · [docs/url-state.md](docs/url-state.md)
+**See it:** [shared link](https://dashboard-kit-demo-puce.vercel.app?view=orders&orders.f=status:in:paid&orders.f=amount:gt:1000&orders.sort=-amount) · Storybook → [Data/URL ↔ Query](https://dashboard-kit-storybook.vercel.app?path=/story/data-url-query--default) (live request log) · [docs/url-state.md](docs/url-state.md)
 
 ![Orders filtered by status and amount, with the filters in the URL](docs/screenshots/orders-filters.png)
 
@@ -111,7 +111,7 @@ const table = useDataTable({ id: 'orders', columns: orderColumns, source, select
 </DataTable>
 ```
 
-**See it:** Storybook → [Data/DataTable](STORYBOOK_URL/?path=/story/data-datatable--default) · [docs/data-table.md](docs/data-table.md)
+**See it:** Storybook → [Data/DataTable](https://dashboard-kit-storybook.vercel.app?path=/story/data-datatable--default) · [docs/data-table.md](docs/data-table.md)
 
 ### 3. What loading, empty and error really mean
 
@@ -127,7 +127,7 @@ const table = useDataTable({ id: 'orders', columns: orderColumns, source, select
 | `error`      | The request failed, nothing to show | The cause, **Retry**, the request ID                       |
 | `ready`      | Data to show                        | Data, plus refetch bar / dimmed placeholder / stale banner |
 
-**See it:** [KPIs failing](https://dashboard-kit-demo-puce.vercel.app?fail=metrics.kpis) · Storybook → [Data/States in practice → Partial Failure](STORYBOOK_URL/?path=/story/data-states-in-practice--partial-failure) · [docs/data-states.md](docs/data-states.md)
+**See it:** [KPIs failing](https://dashboard-kit-demo-puce.vercel.app?fail=metrics.kpis) · Storybook → [Data/States in practice → Partial Failure](https://dashboard-kit-storybook.vercel.app?path=/story/data-states-in-practice--partial-failure) · [docs/data-states.md](docs/data-states.md)
 
 ![The KPI cards in an error state while the chart and table still work](docs/screenshots/partial-failure.png)
 
@@ -149,7 +149,7 @@ const table = useDataTable({ id: 'orders', columns: orderColumns, source, select
 | Esc / F2                  | Step back out of a cell's controls                                             |
 | ?                         | Show every shortcut                                                            |
 
-**See it:** [Orders](https://dashboard-kit-demo-puce.vercel.app?view=orders) · Storybook → [Data/DataTable/Keyboard → Keyboard Only](STORYBOOK_URL/?path=/story/data-datatable-keyboard--keyboard-only) · [docs/keyboard-grid.md](docs/keyboard-grid.md)
+**See it:** [Orders](https://dashboard-kit-demo-puce.vercel.app?view=orders) · Storybook → [Data/DataTable/Keyboard → Keyboard Only](https://dashboard-kit-storybook.vercel.app?path=/story/data-datatable-keyboard--keyboard-only) · [docs/keyboard-grid.md](docs/keyboard-grid.md)
 
 ![Keyboard focus on a grid cell, with the active row tinted](docs/screenshots/keyboard-focus.png)
 
