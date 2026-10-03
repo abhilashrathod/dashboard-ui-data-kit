@@ -31,7 +31,12 @@ export function App() {
           </p>
         </div>
         {/* The full dashboard shell (navigation, KPIs, charts) is Stage 8. */}
-        <OrdersTable gridClassName="max-h-[min(70vh,48rem)]" />
+        {/*
+          A bounded scroll container, so large pages (500 rows) virtualize:
+          the viewport minus the app header, title, toolbar and pagination,
+          never under 400px.
+        */}
+        <OrdersTable gridClassName="max-h-[max(400px,calc(100dvh-22rem))]" />
       </main>
     </div>
   )

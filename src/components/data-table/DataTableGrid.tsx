@@ -6,16 +6,26 @@
  * (roving tabindex) and the table owns their keyboard handling.
  */
 import { flexRender, type Header, type Row, type RowData } from '@tanstack/react-table'
+import {
+  defaultRangeExtractor,
+  useVirtualizer,
+  type Range,
+  type Virtualizer,
+} from '@tanstack/react-virtual'
 import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react'
 import {
   memo,
+  useCallback,
   useEffect,
   useId,
+  useLayoutEffect,
   useMemo,
   useRef,
+  useState,
   type ComponentProps,
   type CSSProperties,
   type ReactNode,
+  type RefObject,
 } from 'react'
 import type { Sort } from '@/contracts'
 import { cn } from '@/lib/cn'
@@ -31,11 +41,13 @@ import {
   FOCUS_TARGET_ATTR,
   FocusTargetContext,
   gridCellProps,
+  posOf,
   type CellKind,
 } from './keyboard/focusTarget'
-import { HEADER_ROW } from './keyboard/gridNav'
+import { DEFAULT_PAGE_STEP, HEADER_ROW } from './keyboard/gridNav'
 import { useRenderCount } from './keyboard/renderCounter'
 import { useGridKeyboard } from './keyboard/useGridKeyboard'
+import type { GridScroller } from './keyboard/useGridState'
 import {
   columnIdOf,
   gridTemplateColumns,
@@ -189,6 +201,8 @@ function GridTable({
   interactive,
   className,
   gridProps,
+  scrollRef,
+  headRef,
   children,
 }: {
   table: DataTableModel<RowData>
@@ -197,6 +211,10 @@ function GridTable({
   className?: string
   /** The live grid's ref and delegated handlers (useGridKeyboard). */
   gridProps?: ComponentProps<'table'>
+  /** The scroll container, for the row virtualizer. */
+  scrollRef?: RefObject<HTMLDivElement | null>
+  /** The sticky <thead>, measured by the row virtualizer. */
+  headRef?: RefObject<HTMLTableSectionElement | null>
   children: ReactNode
 }) {
   const { instance, columns, params, columnVisibility, activeCell, selectable, total } = table
@@ -217,7 +235,7 @@ function GridTable({
   }, [columns, visibilityState])
   // While the bulk bar is up it floats over the bottom of the card: leave room
   // under the last row so it can always be scrolled into view.
-  const barSpace = hasBulkBar && table.selection.count > 0
+  const barSpace = hasBulkBarSpace(hasBulkBar, table)
   const headerActive = interactive && activeCell.row === HEADER_ROW
 
   return (
@@ -226,6 +244,7 @@ function GridTable({
     // keeps a row that receives focus (and so scrolls into view) clear of the
     // sticky header and the bulk bar.
     <div
+      ref={scrollRef}
       data-slot="data-table-scroll"
       className={cn('scroll-pt-11 overflow-auto', barSpace && 'scroll-pb-20 pb-20', className)}
     >
@@ -258,6 +277,7 @@ function GridTable({
         className="group/grid grid w-full text-sm"
       >
         <thead
+          ref={headRef}
           role="rowgroup"
           className="sticky top-0 z-10 grid border-b border-dashed border-border bg-surface"
         >
@@ -287,6 +307,13 @@ function GridTable({
     </div>
   )
 }
+
+/** The bulk bar is up, floating over the bottom of the scroll container. */
+const hasBulkBarSpace = (hasBulkBar: boolean, table: DataTableModel<RowData>) =>
+  hasBulkBar && table.selection.count > 0
+
+/** The room scroll-pb-20 leaves for the bulk bar, in px. */
+const BULK_BAR_SPACE = 80
 
 const rowClass = 'grid h-row grid-cols-(--dt-columns)'
 
@@ -329,6 +356,13 @@ interface GridRowProps {
   columnsKey: string
   /** id of the grid's "Press Enter to interact" description, for composite cells. Stable. */
   hintId: string
+  /**
+   * Virtualized: the row's offset in the tbody, in px (absolutely positioned).
+   * Fixed per index for a given row height, so it doesn't break the memo.
+   */
+  virtualStart?: number
+  /** The page's last row: no bottom border (virtualized rows can't use divide-y). */
+  last?: boolean
 }
 
 /**
@@ -345,12 +379,16 @@ const GridRow = memo(function GridRow({
   activeCol,
   interacting,
   hintId,
+  virtualStart,
+  last,
 }: GridRowProps) {
   useRenderCount(row.id)
+  const virtual = virtualStart !== undefined
   return (
     <tr
       role="row"
       aria-rowindex={rowOffset + rowIndex}
+      style={virtual ? { transform: `translateY(${virtualStart}px)` } : undefined}
       aria-selected={isSelected}
       data-selected={isSelected ? '' : undefined}
       data-active={activeCol !== null ? '' : undefined}
@@ -358,6 +396,8 @@ const GridRow = memo(function GridRow({
         // group/row: cells show row-level affordances on hover / focus (the copy button).
         'group/row',
         rowClass,
+        virtual && 'absolute top-0 left-0 w-full',
+        virtual && !last && 'border-b border-border',
         'transition-colors duration-(--duration-fast) ease-standard not-data-selected:hover-enabled:bg-surface-subtle',
         // The active row, only while focus is in the grid: a subtle tint, so
         // the eye finds the row of the focused cell.
@@ -394,7 +434,16 @@ const GridRow = memo(function GridRow({
   )
 })
 
-function Body({ table, hintId }: { table: DataTableModel<RowData>; hintId: string }) {
+function Body({
+  table,
+  hintId,
+  virtualizer,
+}: {
+  table: DataTableModel<RowData>
+  hintId: string
+  /** Set while virtualizing: only its range of rows is rendered. */
+  virtualizer: Virtualizer<HTMLDivElement, HTMLTableRowElement> | null
+}) {
   const { rows, activeCell, interacting, selectable, selection, dataState, params, instance } =
     table
   /*
@@ -412,23 +461,189 @@ function Body({ table, hintId }: { table: DataTableModel<RowData>; hintId: strin
     .map((column) => column.id)
     .join(',')
 
+  const renderRow = (rowIndex: number, virtualStart?: number) => {
+    const row = rows[rowIndex]
+    if (!row) return null
+    return (
+      <GridRow
+        key={row.id}
+        row={row}
+        rowIndex={rowIndex}
+        rowOffset={rowOffset}
+        isSelected={selectable ? selection.isSelected(row.id) : undefined}
+        activeCol={activeCell.row === rowIndex ? activeCell.col : null}
+        interacting={interacting && activeCell.row === rowIndex}
+        columnsKey={columnsKey}
+        hintId={hintId}
+        virtualStart={virtualStart}
+        last={virtualStart !== undefined && rowIndex === rows.length - 1}
+      />
+    )
+  }
+
+  if (virtualizer) {
+    // Item starts include scrollMargin (the sticky header above the tbody):
+    // subtract it to position rows inside the tbody.
+    const margin = virtualizer.options.scrollMargin
+    return (
+      <tbody
+        role="rowgroup"
+        className="relative block"
+        style={{ height: virtualizer.getTotalSize() }}
+      >
+        {virtualizer.getVirtualItems().map((item) => renderRow(item.index, item.start - margin))}
+      </tbody>
+    )
+  }
+
   return (
     <tbody role="rowgroup" className="grid divide-y divide-border">
-      {rows.map((row, rowIndex) => (
-        <GridRow
-          key={row.id}
-          row={row}
-          rowIndex={rowIndex}
-          rowOffset={rowOffset}
-          isSelected={selectable ? selection.isSelected(row.id) : undefined}
-          activeCol={activeCell.row === rowIndex ? activeCell.col : null}
-          interacting={interacting && activeCell.row === rowIndex}
-          columnsKey={columnsKey}
-          hintId={hintId}
-        />
-      ))}
+      {rows.map((_, rowIndex) => renderRow(rowIndex))}
     </tbody>
   )
+}
+
+/** Fallback row height (the comfortable --row-height) until the container is measured. */
+const DEFAULT_ROW_HEIGHT = 52
+
+/**
+ * The scroll container's --row-height in px, re-read whenever a data-density
+ * attribute changes anywhere in the document (<html> or a subtree override).
+ */
+function useRowHeight(ref: RefObject<HTMLElement | null>, enabled: boolean) {
+  const [height, setHeight] = useState(DEFAULT_ROW_HEIGHT)
+  useLayoutEffect(() => {
+    const element = ref.current
+    if (!enabled || !element) return
+    const measure = () => {
+      const px = Number.parseFloat(getComputedStyle(element).getPropertyValue('--row-height'))
+      if (px > 0) setHeight(px)
+    }
+    measure()
+    const observer = new MutationObserver(measure)
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-density'],
+      subtree: true,
+    })
+    return () => observer.disconnect()
+  }, [ref, enabled])
+  return height
+}
+
+/** Scrolls the container horizontally so the focused cell's column is in view. */
+function revealColumn(container: HTMLElement, target: HTMLElement) {
+  const cell = posOf(target)?.cell ?? target
+  const box = container.getBoundingClientRect()
+  const rect = cell.getBoundingClientRect()
+  if (rect.left < box.left) container.scrollLeft -= box.left - rect.left
+  else if (rect.right > box.right) {
+    // A cell wider than the container: align its start rather than its end.
+    container.scrollLeft += Math.min(rect.right - box.right, rect.left - box.left)
+  }
+}
+
+export interface VirtualizeOptions {
+  /** Virtualize only when the page has more rows than this. Default 100. */
+  threshold?: number
+  /** Rows rendered beyond each edge of the viewport. Default 8. */
+  overscan?: number
+}
+
+const DEFAULT_VIRTUALIZE_THRESHOLD = 100
+const DEFAULT_OVERSCAN = 8
+
+/**
+ * Row virtualization (@tanstack/react-virtual) on the grid's own scroll
+ * container: fixed-height rows (--row-height), only the visible range (plus
+ * overscan, plus the active row) rendered. Inactive (null) at or under the
+ * threshold, where every row renders as before.
+ */
+function useRowVirtualizer(
+  table: DataTableModel<RowData>,
+  virtualize: VirtualizeOptions | false | undefined,
+) {
+  const { rows, activeCell } = table
+  const { hasBulkBar } = useDataTableContext('Grid')
+  const { threshold = DEFAULT_VIRTUALIZE_THRESHOLD, overscan = DEFAULT_OVERSCAN } =
+    virtualize || {}
+  const active = virtualize !== false && rows.length > threshold
+
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const headRef = useRef<HTMLTableSectionElement>(null)
+  const rowHeight = useRowHeight(scrollRef, active)
+  // The sticky header sits above the tbody inside the scroll container: rows
+  // start that far down (scrollMargin), and scrollToIndex keeps them clear of
+  // it (scrollPaddingStart). 44px (h-11) + its 1px border until measured.
+  const [headHeight, setHeadHeight] = useState(45)
+  useLayoutEffect(() => {
+    if (active && headRef.current) setHeadHeight(headRef.current.offsetHeight)
+  }, [active, rowHeight])
+  const barSpace = hasBulkBarSpace(hasBulkBar, table) ? BULK_BAR_SPACE : 0
+
+  const activeRow = activeCell.row
+  // The default range PLUS the active row: the focused row must never unmount
+  // when it's scrolled out of view. Otherwise focus drops to <body> and the
+  // arrow keys stop working (the grid's keydown handler only sees events from
+  // inside it).
+  const rangeExtractor = useCallback(
+    (range: Range) => {
+      const indexes = defaultRangeExtractor(range)
+      if (activeRow >= 0 && activeRow < range.count && !indexes.includes(activeRow)) {
+        indexes.push(activeRow)
+        indexes.sort((a, b) => a - b) // DOM order = row order, for screen readers
+      }
+      return indexes
+    },
+    [activeRow],
+  )
+
+  const virtualizer = useVirtualizer<HTMLDivElement, HTMLTableRowElement>({
+    enabled: active,
+    count: rows.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => rowHeight,
+    overscan,
+    rangeExtractor,
+    scrollMargin: headHeight,
+    scrollPaddingStart: headHeight,
+    scrollPaddingEnd: barSpace,
+    // Scroll updates render in the next frame instead of a flushSync, which
+    // React warns about when it lands inside a commit (scrollToIndex is called
+    // from useGridState's layout effect).
+    useFlushSync: false,
+  })
+
+  // Sizes are cached per item: a new row height (density) needs a re-measure.
+  useLayoutEffect(() => {
+    if (active) virtualizer.measure()
+  }, [virtualizer, active, rowHeight])
+
+  // Let useGridState scroll rows into view through the virtualizer.
+  const { scrollerRef } = table.grid
+  useLayoutEffect(() => {
+    if (!active) return
+    const scroller: GridScroller = {
+      reveal: (row, target) => {
+        virtualizer.scrollToIndex(row, { align: 'auto' })
+        const container = scrollRef.current
+        if (target && container) revealColumn(container, target)
+      },
+    }
+    scrollerRef.current = scroller
+    return () => {
+      if (scrollerRef.current === scroller) scrollerRef.current = null
+    }
+  }, [active, virtualizer, scrollerRef])
+
+  // PageUp / PageDown move by the rows that fit in the viewport (minus the
+  // header and the bulk bar's room), at least 1.
+  const viewport = virtualizer.scrollRect?.height ?? 0
+  const pageStep = active
+    ? Math.max(1, Math.floor((viewport - headHeight - barSpace) / rowHeight))
+    : DEFAULT_PAGE_STEP
+
+  return { virtualizer: active ? virtualizer : null, scrollRef, headRef, pageStep }
 }
 
 /** The ready grid: keyboard model, cell context, rows. */
@@ -436,13 +651,17 @@ function LiveGrid({
   table,
   label,
   className,
+  virtualize,
 }: {
   table: DataTableModel<RowData>
   label: string
   className?: string
+  virtualize: VirtualizeOptions | false | undefined
 }) {
   const { keyboardHelpRef } = useDataTableContext('Grid')
+  const { virtualizer, scrollRef, headRef, pageStep } = useRowVirtualizer(table, virtualize)
   const { gridProps } = useGridKeyboard(table, {
+    pageStep,
     // "?" opens DataTable.KeyboardHelp when it's rendered (it registers itself).
     openHelp: () => {
       const open = keyboardHelpRef.current
@@ -470,8 +689,10 @@ function LiveGrid({
           interactive
           className={className}
           gridProps={gridProps}
+          scrollRef={scrollRef}
+          headRef={headRef}
         >
-          <Body table={table} hintId={hintId} />
+          <Body table={table} hintId={hintId} virtualizer={virtualizer} />
         </GridTable>
       </DataTableParamsContext>
     </DataTableCellContext>
@@ -543,11 +764,11 @@ function useGridAnnouncements(table: DataTableModel<RowData>) {
 export interface DataTableGridProps {
   /** Goes on the scroll container: cap the height here, e.g. "max-h-[32rem]". Default: none. */
   className?: string
-}
-
-export interface DataTableGridProps {
-  /** Goes on the scroll container: cap the height here, e.g. "max-h-[32rem]". Default: none. */
-  className?: string
+  /**
+   * Row virtualization for large pages, on by default above 100 rows. Needs a
+   * bounded scroll container (className) to have any effect. false: off.
+   */
+  virtualize?: VirtualizeOptions | false
 }
 
 /**
@@ -556,7 +777,7 @@ export interface DataTableGridProps {
  * refetch bar, stale banner and placeholder dimming over the rows. Once there
  * are rows it's an ARIA grid with keyboard navigation (docs/keyboard-grid.md).
  */
-export function DataTableGrid({ className }: DataTableGridProps) {
+export function DataTableGrid({ className, virtualize }: DataTableGridProps) {
   const { table, label } = useDataTableContext('Grid')
   useGridAnnouncements(table)
 
@@ -573,7 +794,9 @@ export function DataTableGrid({ className }: DataTableGridProps) {
       }
       className="**:data-[slot=stale-banner]:mx-card"
     >
-      {() => <LiveGrid table={table} label={label} className={className} />}
+      {() => (
+        <LiveGrid table={table} label={label} className={className} virtualize={virtualize} />
+      )}
     </DataBoundary>
   )
 }

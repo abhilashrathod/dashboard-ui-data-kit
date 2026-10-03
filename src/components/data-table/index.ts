@@ -14,7 +14,7 @@ export { DataTableColumnToggle, type DataTableColumnToggleProps } from './DataTa
 export { DataTableDensityToggle, type DataTableDensityToggleProps } from './DataTableDensityToggle'
 export { DataTableExport, type DataTableExportProps } from './DataTableExport'
 export { buildCsvColumns, selectedRowsForExport } from './exportColumns'
-export { DataTableGrid, type DataTableGridProps } from './DataTableGrid'
+export { DataTableGrid, type DataTableGridProps, type VirtualizeOptions } from './DataTableGrid'
 export { DataTableKeyboardHelp, type DataTableKeyboardHelpProps } from './DataTableKeyboardHelp'
 export {
   clampPos,

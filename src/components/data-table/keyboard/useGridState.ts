@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useRef, useState, type RefObject } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
 import {
   effectiveActiveCell,
   INITIAL_ACTIVE,
@@ -8,6 +8,21 @@ import {
 import { CELL_CONTROL_ATTR, focusTargetAt, type CellKind } from './focusTarget'
 import { HEADER_ROW, samePos, type Pos } from './gridNav'
 import { resolveFocusReturn } from './interaction'
+
+/**
+ * How a virtualized grid brings a row into view. DataTable.Grid registers one
+ * while it virtualizes; otherwise focus() scrolls natively.
+ */
+export interface GridScroller {
+  /**
+   * Scrolls `row` into view (the virtualizer's scrollToIndex). With `target`,
+   * the focused element, also scrolls its column into view horizontally.
+   */
+  reveal: (row: number, target?: HTMLElement) => void
+}
+
+/** Frames to wait for a scrolled-to row to render before giving up on focusing it. */
+const FOCUS_RETRY_FRAMES = 5
 
 export interface GridState {
   /** The active cell, clamped to the grid on screen. Row -1 is the header. */
@@ -29,6 +44,8 @@ export interface GridState {
     ref: RefObject<HTMLTableElement | null>
     /** Focus is inside the grid (tracked by its focus / blur handlers). */
     setFocusInside: (inside: boolean) => void
+    /** Set by a virtualized grid: see GridScroller. */
+    scrollerRef: RefObject<GridScroller | null>
   }
 }
 
@@ -60,6 +77,8 @@ export function useGridState({
   colKinds: readonly CellKind[]
 }): GridState {
   const gridRef = useRef<HTMLTableElement>(null)
+  const scrollerRef = useRef<GridScroller>(null)
+  const retryFrame = useRef(0)
   const [stored, setStored] = useState<StoredActiveCell>(() => ({
     pos: INITIAL_ACTIVE,
     listKey,
@@ -80,10 +99,41 @@ export function useGridState({
   const focusInside = useRef(false)
 
   const focusNow = (pos: Pos, inCell: boolean) => {
+    cancelAnimationFrame(retryFrame.current)
     const grid = gridRef.current
-    const target = grid && focusTargetAt(grid, pos, { interacting: inCell })
-    if (target && target !== document.activeElement) target.focus()
+    if (!grid) return
+    const find = () => focusTargetAt(grid, pos, { interacting: inCell })
+    const target = find()
+    const scroller = scrollerRef.current
+    // The header is sticky, so it's always in view: native focus is fine.
+    if (!scroller || pos.row === HEADER_ROW) {
+      if (target && target !== document.activeElement) target.focus()
+      return
+    }
+    // Virtualized: the virtualizer scrolls, not the browser. Native focus
+    // scrolling would fight scrollToIndex over the absolutely positioned rows.
+    if (target) {
+      if (target !== document.activeElement) target.focus({ preventScroll: true })
+      scroller.reveal(pos.row, target)
+      return
+    }
+    // The row isn't rendered (normally the range always includes the active
+    // row, so this is the fallback): scroll to it, then focus it once it renders.
+    scroller.reveal(pos.row)
+    let frames = 0
+    const retry = () => {
+      const late = find()
+      if (late) {
+        late.focus({ preventScroll: true })
+        scroller.reveal(pos.row, late)
+      } else if (++frames < FOCUS_RETRY_FRAMES) {
+        retryFrame.current = requestAnimationFrame(retry)
+      }
+    }
+    retryFrame.current = requestAnimationFrame(retry)
   }
+
+  useEffect(() => () => cancelAnimationFrame(retryFrame.current), [])
 
   // No dependency list: it must see every commit, since either a request or a
   // lost focus can come with any render. Both checks are cheap.
@@ -141,6 +191,7 @@ export function useGridState({
       setFocusInside: (inside) => {
         focusInside.current = inside
       },
+      scrollerRef,
     },
   }
 }

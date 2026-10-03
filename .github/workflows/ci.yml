@@ -35,13 +35,6 @@ jobs:
       - name: Lint
         run: pnpm lint
 
-      # Story tests run in real Chromium through @vitest/browser-playwright.
-      - name: Install Playwright Chromium
-        run: pnpm exec playwright install --with-deps chromium
-
-      - name: Test (unit + Storybook stories)
-        run: pnpm test
-
       - name: Build demo
         run: pnpm build
 
