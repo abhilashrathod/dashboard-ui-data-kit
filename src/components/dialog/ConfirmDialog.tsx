@@ -9,6 +9,8 @@ export type ConfirmDialogProps = {
   description?: ReactNode
   /** Default "Confirm". Name the action: "Delete order", "Refund $80". */
   confirmLabel?: ReactNode
+  /** Default "Cancel". Name the way back: "Keep editing". */
+  cancelLabel?: ReactNode
   /** "danger" for destructive actions: red confirm button, focus starts on Cancel. */
   tone?: 'default' | 'danger'
   /**
@@ -37,6 +39,7 @@ export function ConfirmDialog({
   title,
   description,
   confirmLabel = 'Confirm',
+  cancelLabel = 'Cancel',
   tone = 'default',
   onConfirm,
   onCloseAutoFocus,
@@ -106,7 +109,7 @@ export function ConfirmDialog({
             disabled={pending}
             onClick={() => handleOpenChange(false)}
           >
-            Cancel
+            {cancelLabel}
           </Button>
           <Button
             ref={confirmRef}

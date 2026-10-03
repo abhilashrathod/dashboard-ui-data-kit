@@ -12,7 +12,7 @@ const usd = (...checks: z.core.$ZodCheck<number>[]) =>
   z.number().check(z.multipleOf(0.01), ...checks)
 
 const orderReference = () =>
-  z.string().check(z.regex(/^PO-[A-Z0-9]{5}$/, 'Reference must look like PO-8F3K2'))
+  z.string().check(z.regex(/^PO-[A-Z0-9]{5}$/, 'Reference must look like PO-AB12C'))
 
 export const Order = z.object({
   /** e.g. "ORD-004213" */
@@ -32,15 +32,37 @@ export const Order = z.object({
 })
 export type Order = z.infer<typeof Order>
 
+const AMOUNT_RANGE = 'Amount must be between $0.01 and $50,000'
+const ITEMS_RANGE = 'Items must be between 1 and 999'
+
+/*
+ * The messages here are what users read. The form validates with this schema
+ * and the POST /api/orders handler does too, so the server's 422 fieldErrors
+ * carry exactly the same messages (docs/forms.md).
+ */
 export const CreateOrderInput = z.object({
   customer: z.object({
-    name: z.string().check(z.trim(), z.minLength(2), z.maxLength(80)),
-    email: z.email(),
+    name: z.string({ error: 'Enter a name' }).check(
+      z.trim(),
+      z.minLength(2, 'Name must be at least 2 characters'),
+      z.maxLength(80, 'Name must be at most 80 characters'),
+    ),
+    email: z.email({ error: 'Enter a valid email' }),
   }),
-  channel: Channel,
-  amount: usd(z.gte(0.01), z.lte(50_000)),
-  itemCount: z.int().check(z.gte(1), z.lte(999)),
-  reference: orderReference(),
+  channel: z.enum(Channel.options, { error: 'Choose a channel' }),
+  amount: z
+    .number({ error: 'Enter an amount' })
+    .check(
+      z.multipleOf(0.01, 'Use at most 2 decimals'),
+      z.gte(0.01, AMOUNT_RANGE),
+      z.lte(50_000, AMOUNT_RANGE),
+    ),
+  itemCount: z
+    .number({ error: 'Enter the number of items' })
+    .check(z.int(ITEMS_RANGE), z.gte(1, ITEMS_RANGE), z.lte(999, ITEMS_RANGE)),
+  reference: z
+    .string({ error: 'Enter a reference' })
+    .check(z.regex(/^PO-[A-Z0-9]{5}$/, 'Reference must look like PO-AB12C')),
 })
 export type CreateOrderInput = z.infer<typeof CreateOrderInput>
 

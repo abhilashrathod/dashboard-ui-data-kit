@@ -2,6 +2,7 @@ import { Plus } from 'lucide-react'
 import { Button, Select } from '@/components'
 import { MetricsRange } from '@/contracts'
 import { useDashRange } from '../navigation'
+import { useOpenNewOrder } from '../newOrder'
 import { KPI_IDS, KpiCard } from '../widgets/KpiCard'
 import { RecentOrders } from '../widgets/RecentOrders'
 import { RevenueChart } from '../widgets/RevenueChart'
@@ -28,6 +29,7 @@ function greeting(hour: number): string {
 
 export function OverviewView() {
   const [range, setRange] = useDashRange()
+  const openNewOrder = useOpenNewOrder()
   const now = new Date()
 
   return (
@@ -48,8 +50,7 @@ export function OverviewView() {
             options={RANGE_OPTIONS}
             className="w-40"
           />
-          {/* TODO: open the new-order drawer (a later chunk). */}
-          <Button leftIcon={<Plus />} onClick={() => {}}>
+          <Button leftIcon={<Plus />} onClick={openNewOrder}>
             New order
           </Button>
         </div>

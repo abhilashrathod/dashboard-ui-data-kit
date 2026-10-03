@@ -38,16 +38,18 @@ export const ORDERS_NAMESPACE = 'orders'
 /**
  * Go to the Orders view in ONE push navigation (one Back step).
  * - `{ status }`: show only that status (a fresh filter; page, search and other filters cleared).
+ * - `{ q }`: search for `q` (e.g. a new order's id), with no filters.
  * - no argument: no filters and no search, but the user's sort and page size are kept.
  */
 export function useGoToOrders() {
   const adapter = useUrlAdapter()
   return useCallback(
-    (opts: { status?: OrderStatus } = {}) => {
+    (opts: { status?: OrderStatus; q?: string } = {}) => {
       const current = adapter.getSearch()
       const slice = readNamespace(current, ORDERS_NAMESPACE)
       for (const key of ['page', 'q', 'f']) slice.delete(key)
       if (opts.status) slice.append('f', `status:in:${opts.status}`)
+      if (opts.q) slice.set('q', opts.q)
       const withOrders = writeNamespace(current, ORDERS_NAMESPACE, slice)
       adapter.navigate(writeParam(withOrders, 'view', 'orders'), 'push')
     },

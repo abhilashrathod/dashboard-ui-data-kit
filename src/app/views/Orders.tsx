@@ -2,8 +2,10 @@ import { Plus } from 'lucide-react'
 import { Button } from '@/components'
 import { OrdersTable } from '@/features/orders/OrdersTable'
 import { ORDERS_NAMESPACE } from '../navigation'
+import { useOpenNewOrder } from '../newOrder'
 
 export function OrdersView() {
+  const openNewOrder = useOpenNewOrder()
   return (
     <>
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -14,8 +16,7 @@ export function OrdersView() {
             shared or bookmarked.
           </p>
         </div>
-        {/* TODO: open the new-order drawer (a later chunk). */}
-        <Button leftIcon={<Plus />} onClick={() => {}}>
+        <Button leftIcon={<Plus />} onClick={openNewOrder}>
           New order
         </Button>
       </div>
