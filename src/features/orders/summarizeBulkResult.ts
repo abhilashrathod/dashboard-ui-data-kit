@@ -19,19 +19,37 @@ export type BulkResultSummary = Required<Pick<ToastOptions, 'title' | 'tone'>> &
   }
 
 /**
- * The toast for a bulk status result. The server's `{ updated, failed }` is
+ * The toast for a status change result. The server's `{ updated, failed }` is
  * taken as is: it alone decides which transitions are allowed.
  *  - all updated → success: "3 orders marked as shipped"
  *  - some failed → default: "2 updated, 1 couldn't be changed" + details
  *  - none updated → danger: "No orders could be changed" + details
+ * One order (`orderId`):
+ *  - updated → success: "Order ORD-000123 marked as shipped"
+ *  - failed → danger: "Order ORD-000123 couldn't be changed", the server's reason
  */
 export function summarizeBulkResult(
   result: BulkStatusUpdateResult,
   status: OrderStatus,
+  /** One order, not a selection (the row actions, the details drawer): singular wording. */
+  { orderId }: { orderId?: string } = {},
 ): BulkResultSummary {
   const updated = result.updated.length
   const failed = result.failed.length
   const word = statusWord(status)
+
+  if (orderId !== undefined) {
+    // One order: either it moved or it didn't. The server's reason fits in
+    // the toast, so there's no details dialog, and nothing is "still selected".
+    return failed === 0
+      ? { title: `Order ${orderId} marked as ${word}`, tone: 'success', details: false }
+      : {
+          title: `Order ${orderId} couldn't be changed`,
+          description: result.failed[0]?.reason,
+          tone: 'danger',
+          details: false,
+        }
+  }
 
   if (failed === 0) {
     return { title: `${orders(updated)} marked as ${word}`, tone: 'success', details: false }

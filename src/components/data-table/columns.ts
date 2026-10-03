@@ -74,10 +74,17 @@ export interface DataColumnMeta<TData = any> {
    *  - 'text': the cell itself takes focus.
    *  - 'widget': exactly ONE interactive element inside, which takes focus
    *    directly; it must spread useFocusTargetProps() (the selection checkbox).
-   *  - 'composite': several interactive elements (5b: Enter/F2 to go in,
-   *    Escape to come out). Until then it behaves like 'text'.
+   *  - 'composite': several interactive elements. The cell takes focus; Enter
+   *    or F2 enters interaction mode, Escape leaves it. Each control spreads
+   *    useCellInteractive() (the Customer cell).
    */
   cellKind?: CellKind
+  /**
+   * A utility column (selection, row actions): its header label is for screen
+   * readers only, and it isn't listed in DataTable.ColumnToggle. Set
+   * `hideable: false` and `csv: false` with it.
+   */
+  utility?: boolean
   // filter?: DataColumnFilter  (Stage 6: the filter UI and how it maps onto a FilterField)
 }
 

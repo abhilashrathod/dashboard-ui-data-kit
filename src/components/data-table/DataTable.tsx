@@ -1,4 +1,4 @@
-import { Children, isValidElement, useMemo, type ReactNode } from 'react'
+import { Children, isValidElement, useMemo, useRef, type ReactNode } from 'react'
 import type { RowData } from '@tanstack/react-table'
 import { Card } from '../card'
 import { DataTableContext } from './context'
@@ -7,6 +7,7 @@ import { DataTableColumnToggle } from './DataTableColumnToggle'
 import { DataTableDensityToggle } from './DataTableDensityToggle'
 import { DataTableExport } from './DataTableExport'
 import { DataTableGrid } from './DataTableGrid'
+import { DataTableKeyboardHelp } from './DataTableKeyboardHelp'
 import { DataTablePagination } from './DataTablePagination'
 import { DataTableSearch } from './DataTableSearch'
 import { DataTableToolbar } from './DataTableToolbar'
@@ -50,9 +51,15 @@ export function DataTable<TData extends RowData>({
   const hasBulkBar = Children.toArray(children).some(
     (child) => isValidElement(child) && child.type === DataTableBulkBar,
   )
+  const keyboardHelpRef = useRef<(() => void) | null>(null)
   const context = useMemo(
     // Erase the row type: the parts never touch row data, only the column defs do.
-    () => ({ table: table as unknown as DataTableModel<RowData>, label, hasBulkBar }),
+    () => ({
+      table: table as unknown as DataTableModel<RowData>,
+      label,
+      hasBulkBar,
+      keyboardHelpRef,
+    }),
     [table, label, hasBulkBar],
   )
   return (
@@ -71,4 +78,5 @@ DataTable.BulkBar = DataTableBulkBar
 DataTable.Search = DataTableSearch
 DataTable.DensityToggle = DataTableDensityToggle
 DataTable.Grid = DataTableGrid
+DataTable.KeyboardHelp = DataTableKeyboardHelp
 DataTable.Pagination = DataTablePagination

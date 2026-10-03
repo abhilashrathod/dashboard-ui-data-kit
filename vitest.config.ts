@@ -17,6 +17,11 @@ export default mergeConfig(
             include: ['src/**/*.test.{ts,tsx}'],
             exclude: ['src/**/*.node.test.ts'],
             setupFiles: ['./src/test/setup.ts'],
+            // The full-table tests (a 50-row grid of Radix controls in jsdom)
+            // take 0.3–0.9s alone but 4–6s when every file runs in parallel:
+            // CPU contention, not slowness in the code (the grid's own render
+            // budget is asserted by the render-count test). 15s, not 5s.
+            testTimeout: 15_000,
             restoreMocks: true,
             unstubGlobals: true,
           },

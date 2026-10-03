@@ -13,14 +13,8 @@ import type { Page } from '@/contracts'
 import type { DataState } from '@/lib/data-state'
 import { setPage, setPageSize, type UseListParamsResult } from '@/lib/url-state'
 import { dataTableFeatures, type DataColumnDef, type DataTableFeatures } from './columns'
-import {
-  effectiveActiveCell,
-  INITIAL_ACTIVE,
-  listKeyOf,
-  rekeyActiveCell,
-  type StoredActiveCell,
-} from './keyboard/activeCell'
-import type { Pos } from './keyboard/gridNav'
+import { listKeyOf } from './keyboard/activeCell'
+import { useGridState, type GridState } from './keyboard/useGridState'
 import { pageRange, sortingFromParams, sortUpdaterFor } from './model'
 import { viewKeyOf } from './selection'
 import { selectionColumn } from './selectionColumn'
@@ -52,9 +46,15 @@ export interface UseDataTableOptions<TData extends RowData> {
   selectable?: boolean
   /** Names a row for its checkbox: "order ORD-000123" → "Select order ORD-000123". Default: "{singular label} {id}". */
   getRowLabel?: (row: TData) => string
+  /**
+   * Enter on a text cell of a data row "opens" the row (e.g. a details
+   * drawer). Clicking a row doesn't: see docs/keyboard-grid.md. When the
+   * overlay closes, call `table.returnFocus({ rowId })`.
+   */
+  onOpenRow?: (row: TData) => void
 }
 
-export interface DataTableModel<TData extends RowData> extends DataTableSource<TData> {
+export interface DataTableModel<TData extends RowData> extends DataTableSource<TData>, GridState {
   id: string
   /** Escape hatch: the TanStack Table instance (v9). Its sort/page/visibility setters go through the kit too. */
   instance: ReactTable<DataTableFeatures, TData>
@@ -71,14 +71,9 @@ export interface DataTableModel<TData extends RowData> extends DataTableSource<T
   /** Rows matching the params; the last known value while a new key loads. */
   total: number
   pageCount: number
-  /**
-   * The grid's active cell (keyboard focus position): row -1 is the header,
-   * columns count visible columns only. Already clamped to the grid on screen.
-   * See docs/keyboard-grid.md.
-   */
-  activeCell: Pos
-  /** Moves the active cell. Doesn't move focus; DataTable.Grid does that for user moves. */
-  setActiveCell: (pos: Pos) => void
+  onOpenRow?: (row: TData) => void
+  // GridState: activeCell, interacting, setActiveCell, focusCell, returnFocus
+  // (the keyboard model, docs/keyboard-grid.md).
 }
 
 /** Module scope, so a non-ready state doesn't hand TanStack a new array each render. */
@@ -97,6 +92,7 @@ export function useDataTable<TData extends RowData>({
   getRowId,
   selectable = false,
   getRowLabel,
+  onOpenRow,
 }: UseDataTableOptions<TData>): DataTableModel<TData> {
   const { params, setParams, resetParams, dataState } = source
 
@@ -172,29 +168,18 @@ export function useDataTable<TData extends RowData>({
   const rows = instance.getRowModel().rows
 
   /*
-   * The active cell: local UI state, like the selection. A new page or view
-   * resets the row to 0 (keeping the column); that reset is derived during
-   * render, the same pattern as the selection's view-key clear. Clamping to
-   * the rows and columns on screen is read-side only (keyboard/activeCell.ts).
+   * The grid's keyboard state (active cell, interaction mode, focus moves):
+   * local UI state, like the selection. Held here rather than in the grid,
+   * so it survives the grid unmounting while a new key loads, and so
+   * overlays opened from a row can return focus to it (keyboard/useGridState.ts).
    */
-  const listKey = listKeyOf(viewKeyOf(params), params.page, params.pageSize)
-  const [storedActive, setStoredActive] = useState<StoredActiveCell>(() => ({
-    pos: INITIAL_ACTIVE,
-    listKey,
-  }))
-  const currentActive = rekeyActiveCell(storedActive, listKey)
-  if (currentActive !== storedActive) setStoredActive(currentActive)
-  const activeCell = effectiveActiveCell(currentActive, {
-    rowCount: rows.length,
-    colCount: instance.getVisibleLeafColumns().length,
+  const gridState = useGridState({
+    listKey: listKeyOf(viewKeyOf(params), params.page, params.pageSize),
+    rowIds: rows.map((row) => row.id),
+    colKinds: instance
+      .getVisibleLeafColumns()
+      .map((column) => column.columnDef.meta?.cellKind ?? 'text'),
   })
-  const setActiveCell = useCallback(
-    (pos: Pos) =>
-      setStoredActive((state) =>
-        state.pos.row === pos.row && state.pos.col === pos.col ? state : { ...state, pos },
-      ),
-    [setStoredActive],
-  )
 
   return {
     id,
@@ -211,7 +196,7 @@ export function useDataTable<TData extends RowData>({
     rows,
     total,
     pageCount,
-    activeCell,
-    setActiveCell,
+    onOpenRow,
+    ...gridState,
   }
 }

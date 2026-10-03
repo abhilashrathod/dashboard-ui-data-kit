@@ -15,6 +15,7 @@ export { DataTableDensityToggle, type DataTableDensityToggleProps } from './Data
 export { DataTableExport, type DataTableExportProps } from './DataTableExport'
 export { buildCsvColumns, selectedRowsForExport } from './exportColumns'
 export { DataTableGrid, type DataTableGridProps } from './DataTableGrid'
+export { DataTableKeyboardHelp, type DataTableKeyboardHelpProps } from './DataTableKeyboardHelp'
 export {
   clampPos,
   DEFAULT_PAGE_STEP,
@@ -26,7 +27,15 @@ export {
   type NavKeyEvent,
   type Pos,
 } from './keyboard/gridNav'
-export { useFocusTargetProps, type CellKind } from './keyboard/focusTarget'
+export { useCellInteractive, useFocusTargetProps, type CellKind } from './keyboard/focusTarget'
+export {
+  KEYMAP,
+  KEYMAP_GROUPS,
+  type KeyCombo,
+  type KeymapEntry,
+  type KeymapGroup,
+} from './keyboard/keymap'
+export { isApplePlatform, modifierLabel } from './keyboard/platform'
 export { DataTablePagination, type DataTablePaginationProps } from './DataTablePagination'
 export { DataTableSearch, type DataTableSearchProps } from './DataTableSearch'
 export { DataTableToolbar, type ToolbarSlot } from './DataTableToolbar'

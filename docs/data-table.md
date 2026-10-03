@@ -29,6 +29,7 @@ export function OrdersTable() {
     source,
     getRowId: getOrderRowId,
     selectable: true, // the selection column + table.selection
+    onOpenRow: openDetails, // Enter on a text cell (keyboard-grid.md)
   })
 
   return (
@@ -38,6 +39,7 @@ export function OrdersTable() {
         <DataTable.ColumnToggle slot="end" />
         <DataTable.Export slot="end" />
         <DataTable.DensityToggle slot="end" />
+        <DataTable.KeyboardHelp slot="end" />
       </DataTable.Toolbar>
       <DataTable.Grid className="max-h-[48rem]" />
       <DataTable.Pagination />
@@ -83,21 +85,23 @@ export const orderColumns = helper.columns([
 | `DataTable.ColumnToggle`  | "Columns": a menu with a checkbox per data column (labels from `meta.label`) that stays open while toggling, then "Reset to default". See [Column visibility](#column-visibility).                                                                                                                |
 | `DataTable.Export`        | CSV of the visible columns: the current page, or (with a selection) a menu with "Export selected (n)". See [Export](#export).                                                                                                                                                                     |
 | `DataTable.BulkBar`       | A render prop, `{(selection) => actions}`, shown only while rows are selected: "{n} selected", the actions, and Clear. See [The bulk bar](#the-bulk-bar).                                                                                                                                         |
+| `DataTable.KeyboardHelp`  | An icon button ("Keyboard shortcuts") and a dialog listing every grid shortcut, generated from `keymap.ts`; **?** in the grid opens it too. See [keyboard-grid.md](keyboard-grid.md#keyboard-help).                                                                                               |
 
 ## Column meta reference
 
 `DataColumnMeta` augments TanStack's `ColumnMeta` (declaration merging in [`columns.ts`](../src/components/data-table/columns.ts)), so `column.columnDef.meta` is typed everywhere, including inside TanStack's own types.
 
-| Field       | Type                                              | Default        | Read by                                                                                                                                                 |
-| ----------- | ------------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `label`     | `string` (**required**)                           |                | Header text, sort button name, announcements, the column toggle; CSV headers (4c)                                                                       |
-| `align`     | `'start' \| 'end'`                                | `'start'`      | Header and cells (numbers are end-aligned so digits line up), skeleton bars                                                                             |
-| `width`     | `{ min: number; ideal?: number; grow?: boolean }` | `{ min: 120 }` | The grid track: `minmax(min, ideal)`, or `minmax(min, 1fr)` when `grow` or no `ideal`. The sum of `min`s is where horizontal scrolling starts.          |
-| `sortField` | `SortField`                                       | none           | Maps the column to the API sort field. Absent means not sortable: the header is plain text.                                                             |
-| `hideable`  | `boolean`                                         | `true`         | `false`: always shown, checked and disabled in the column menu                                                                                          |
-| `filter`    | (Stage 6)                                         |                | Typed placeholder, commented out until filters land                                                                                                     |
-| `csv`       | `false \| (row) => value`                         | accessor value | `false` leaves the column out of CSV (the selection column sets it); a function gives the exported value. See [Export](#export).                        |
-| `cellKind`  | `'text' \| 'widget' \| 'composite'`               | `'text'`       | What takes keyboard focus: the cell, or its one control (`'widget'`, e.g. the selection checkbox). See [keyboard-grid.md](keyboard-grid.md#cell-kinds). |
+| Field       | Type                                              | Default        | Read by                                                                                                                                                                                                                                           |
+| ----------- | ------------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `label`     | `string` (**required**)                           |                | Header text, sort button name, announcements, the column toggle; CSV headers (4c)                                                                                                                                                                 |
+| `align`     | `'start' \| 'end'`                                | `'start'`      | Header and cells (numbers are end-aligned so digits line up), skeleton bars                                                                                                                                                                       |
+| `width`     | `{ min: number; ideal?: number; grow?: boolean }` | `{ min: 120 }` | The grid track: `minmax(min, ideal)`, or `minmax(min, 1fr)` when `grow` or no `ideal`. The sum of `min`s is where horizontal scrolling starts.                                                                                                    |
+| `sortField` | `SortField`                                       | none           | Maps the column to the API sort field. Absent means not sortable: the header is plain text.                                                                                                                                                       |
+| `hideable`  | `boolean`                                         | `true`         | `false`: always shown, checked and disabled in the column menu                                                                                                                                                                                    |
+| `filter`    | (Stage 6)                                         |                | Typed placeholder, commented out until filters land                                                                                                                                                                                               |
+| `csv`       | `false \| (row) => value`                         | accessor value | `false` leaves the column out of CSV (the selection column sets it); a function gives the exported value. See [Export](#export).                                                                                                                  |
+| `cellKind`  | `'text' \| 'widget' \| 'composite'`               | `'text'`       | What takes keyboard focus: the cell (text; Enter opens the row), its one control (widget: the checkbox, the ⋯ button), or the cell and then, with Enter, its controls (composite: Customer). See [keyboard-grid.md](keyboard-grid.md#cell-kinds). |
+| `utility`   | `boolean`                                         | `false`        | A utility column (selection, row actions): the header label is for screen readers only, and it isn't listed in the column menu. Set `hideable: false` and `csv: false` with it.                                                                   |
 
 `sortField` is typed as the contract's `SortField`, so a column can't claim to sort by a field the API doesn't support.
 

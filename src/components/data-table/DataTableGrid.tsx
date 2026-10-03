@@ -10,6 +10,7 @@ import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react'
 import {
   memo,
   useEffect,
+  useId,
   useMemo,
   useRef,
   type ComponentProps,
@@ -22,9 +23,11 @@ import { formatNumber } from '@/lib/format'
 import { useAnnounce } from '../announcer'
 import { DataBoundary } from '../data-state'
 import { Skeleton } from '../skeleton'
+import { VisuallyHidden } from '../visually-hidden'
 import type { DataColumnMeta, DataTableFeatures } from './columns'
-import { DataTableCellContext, useDataTableContext } from './context'
+import { DataTableCellContext, DataTableParamsContext, useDataTableContext } from './context'
 import {
+  CellInteractiveContext,
   FOCUS_TARGET_ATTR,
   FocusTargetContext,
   gridCellProps,
@@ -64,7 +67,7 @@ type AnyRow = Row<DataTableFeatures, RowData>
 
 const ARIA_SORT = { asc: 'ascending', desc: 'descending' } as const
 
-/** The column's cell kind. 'composite' is treated as 'text' until 5b. */
+/** The column's cell kind (docs/keyboard-grid.md#cell-kinds). */
 const cellKindOf = (meta: DataColumnMeta | undefined): CellKind => meta?.cellKind ?? 'text'
 
 function SortIndicator({ sorted }: { sorted: false | 'asc' | 'desc' }) {
@@ -78,6 +81,20 @@ function SortIndicator({ sorted }: { sorted: false | 'asc' | 'desc' }) {
 function WidgetTarget({ active, children }: { active: boolean; children: ReactNode }) {
   return <FocusTargetContext value={active ? 0 : -1}>{children}</FocusTargetContext>
 }
+
+/** Wraps a composite cell's content: its controls are Tab stops only while interacting. */
+function CompositeControls({
+  interacting,
+  children,
+}: {
+  interacting: boolean
+  children: ReactNode
+}) {
+  return <CellInteractiveContext value={interacting ? 0 : -1}>{children}</CellInteractiveContext>
+}
+
+/** Read by screen readers on every composite cell (aria-describedby); rendered once per grid. */
+const INTERACT_HINT = 'Press Enter to interact with the cell, Escape to exit'
 
 function HeaderCell({
   header,
@@ -106,7 +123,8 @@ function HeaderCell({
   const kind: CellKind =
     (sortField && !rendered) || (rendered && cellKindOf(meta) === 'widget') ? 'widget' : 'text'
 
-  let content: ReactNode = label
+  // A utility column (row actions) keeps its name for screen readers only.
+  let content: ReactNode = meta?.utility ? <VisuallyHidden>{label}</VisuallyHidden> : label
   if (rendered) {
     // A rendered header (the selection column's checkbox). The skeleton leaves it empty.
     content = interactive ? flexRender(template, header.getContext()) : null
@@ -147,6 +165,8 @@ function HeaderCell({
       role="columnheader"
       scope="col"
       aria-sort={sorted ? ARIA_SORT[sorted] : undefined}
+      // Its label is for screen readers only; the Storybook axe config knows (empty-table-header).
+      data-utility={meta?.utility ? '' : undefined}
       {...(interactive && gridCellProps({ row: HEADER_ROW, col, kind, active }))}
       className={cn(
         cellClass(meta),
@@ -303,8 +323,12 @@ interface GridRowProps {
   isSelected: boolean | undefined
   /** The active column, or null when the active cell isn't in this row. */
   activeCol: number | null
+  /** The active cell is in interaction mode (only ever true on the active row). */
+  interacting: boolean
   /** The visible column ids: a visibility change re-renders every row. */
   columnsKey: string
+  /** id of the grid's "Press Enter to interact" description, for composite cells. Stable. */
+  hintId: string
 }
 
 /**
@@ -319,6 +343,8 @@ const GridRow = memo(function GridRow({
   rowOffset,
   isSelected,
   activeCol,
+  interacting,
+  hintId,
 }: GridRowProps) {
   useRenderCount(row.id)
   return (
@@ -329,6 +355,8 @@ const GridRow = memo(function GridRow({
       data-selected={isSelected ? '' : undefined}
       data-active={activeCol !== null ? '' : undefined}
       className={cn(
+        // group/row: cells show row-level affordances on hover / focus (the copy button).
+        'group/row',
         rowClass,
         'transition-colors duration-(--duration-fast) ease-standard not-data-selected:hover-enabled:bg-surface-subtle',
         // The active row, only while focus is in the grid: a subtle tint, so
@@ -343,15 +371,22 @@ const GridRow = memo(function GridRow({
         const meta = cell.column.columnDef.meta
         const kind = cellKindOf(meta)
         const active = activeCol === col
+        const inMode = active && interacting
         const content = flexRender(cell.column.columnDef.cell, cell.getContext())
         return (
           <td
             key={cell.id}
             role="gridcell"
-            {...gridCellProps({ row: rowIndex, col, kind, active })}
+            {...gridCellProps({ row: rowIndex, col, kind, active, interacting: inMode, hintId })}
             className={cn(cellClass(meta), kind !== 'widget' && focusableCellClass)}
           >
-            {kind === 'widget' ? <WidgetTarget active={active}>{content}</WidgetTarget> : content}
+            {kind === 'widget' ? (
+              <WidgetTarget active={active}>{content}</WidgetTarget>
+            ) : kind === 'composite' ? (
+              <CompositeControls interacting={inMode}>{content}</CompositeControls>
+            ) : (
+              content
+            )}
           </td>
         )
       })}
@@ -359,8 +394,9 @@ const GridRow = memo(function GridRow({
   )
 })
 
-function Body({ table }: { table: DataTableModel<RowData> }) {
-  const { rows, activeCell, selectable, selection, dataState, params, instance } = table
+function Body({ table, hintId }: { table: DataTableModel<RowData>; hintId: string }) {
+  const { rows, activeCell, interacting, selectable, selection, dataState, params, instance } =
+    table
   /*
    * aria-rowindex is PAGE-GLOBAL: (page - 1) * pageSize + i + 2 (the header is
    * row 1). A screen reader then says "row 52 of 4,214" on page 2, matching
@@ -386,7 +422,9 @@ function Body({ table }: { table: DataTableModel<RowData> }) {
           rowOffset={rowOffset}
           isSelected={selectable ? selection.isSelected(row.id) : undefined}
           activeCol={activeCell.row === rowIndex ? activeCell.col : null}
+          interacting={interacting && activeCell.row === rowIndex}
           columnsKey={columnsKey}
+          hintId={hintId}
         />
       ))}
     </tbody>
@@ -403,23 +441,39 @@ function LiveGrid({
   label: string
   className?: string
 }) {
-  const { gridProps } = useGridKeyboard(table)
-  const { selection, getRowLabel } = table
+  const { keyboardHelpRef } = useDataTableContext('Grid')
+  const { gridProps } = useGridKeyboard(table, {
+    // "?" opens DataTable.KeyboardHelp when it's rendered (it registers itself).
+    openHelp: () => {
+      const open = keyboardHelpRef.current
+      open?.()
+      return open !== null
+    },
+  })
+  const hintId = useId()
+  const { selection, getRowLabel, setParams } = table
   const cellContext = useMemo(
     () => ({ selection, label, getRowLabel }),
     [selection, label, getRowLabel],
   )
+  const hasComposite = table.instance
+    .getVisibleLeafColumns()
+    .some((column) => column.columnDef.meta?.cellKind === 'composite')
+
   return (
     <DataTableCellContext value={cellContext}>
-      <GridTable
-        table={table}
-        label={label}
-        interactive
-        className={className}
-        gridProps={gridProps}
-      >
-        <Body table={table} />
-      </GridTable>
+      <DataTableParamsContext value={setParams}>
+        {hasComposite ? <VisuallyHidden id={hintId}>{INTERACT_HINT}</VisuallyHidden> : null}
+        <GridTable
+          table={table}
+          label={label}
+          interactive
+          className={className}
+          gridProps={gridProps}
+        >
+          <Body table={table} hintId={hintId} />
+        </GridTable>
+      </DataTableParamsContext>
     </DataTableCellContext>
   )
 }

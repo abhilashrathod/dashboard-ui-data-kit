@@ -2,8 +2,9 @@ import { Badge, CustomerCell, createColumnHelper, dataColumn, AmountCell } from 
 import { DateCell, StatusCell, TextCell } from '@/components'
 import type { Channel, Order } from '@/contracts'
 import { formatNumber } from '@/lib/format'
+import { RowActions } from './RowActions'
 
-const CHANNEL_LABEL: Record<Channel, string> = {
+export const CHANNEL_LABEL: Record<Channel, string> = {
   web: 'Web',
   mobile: 'Mobile',
   marketplace: 'Marketplace',
@@ -28,6 +29,8 @@ export const orderColumns = helper.columns([
       label: 'Customer',
       sortField: 'customer',
       width: { min: 240, grow: true },
+      // Two controls (filter by name, copy email): Enter to interact, Escape to leave.
+      cellKind: 'composite',
       // One CSV column per table column, so the export matches the screen.
       csv: (order) => `${order.customer.name} <${order.customer.email}>`,
     },
@@ -69,6 +72,20 @@ export const orderColumns = helper.columns([
     // CSV: the ISO timestamp (the accessor value), unambiguous in any locale.
     meta: { label: 'Created', sortField: 'createdAt', width: { min: 148, ideal: 168 } },
     cell: (info) => <DateCell value={info.getValue()} showTime />,
+  }),
+  helper.display({
+    id: 'actions',
+    meta: {
+      // The header reads "Actions" to screen readers only (utility).
+      label: 'Actions',
+      utility: true,
+      hideable: false,
+      csv: false,
+      width: { min: 56, ideal: 56 },
+      // One control (the ⋯ button): it takes focus directly.
+      cellKind: 'widget',
+    },
+    cell: (info) => <RowActions order={info.row.original} />,
   }),
 ])
 

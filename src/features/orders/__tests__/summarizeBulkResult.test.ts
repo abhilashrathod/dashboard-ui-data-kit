@@ -55,3 +55,23 @@ describe('summarizeBulkResult', () => {
     expect(summarizeBulkResult(result(1204, 0), 'paid').title).toBe('1,204 orders marked as paid')
   })
 })
+
+describe('summarizeBulkResult, one order', () => {
+  it('updated → "Order ORD-… marked as …", success', () => {
+    expect(summarizeBulkResult(result(1, 0), 'shipped', { orderId: 'ORD-000001' })).toEqual({
+      title: 'Order ORD-000001 marked as shipped',
+      tone: 'success',
+      details: false,
+    })
+  })
+
+  it('failed → the server\'s reason in the description, no details, nothing "still selected"', () => {
+    const summary = summarizeBulkResult(result(0, 1), 'shipped', { orderId: 'ORD-900000' })
+    expect(summary).toEqual({
+      title: "Order ORD-900000 couldn't be changed",
+      description: "Can't move refunded → shipped",
+      tone: 'danger',
+      details: false,
+    })
+  })
+})

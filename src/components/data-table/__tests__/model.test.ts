@@ -121,7 +121,7 @@ describe('grid tracks', () => {
   })
 
   it('sums the minimums for the horizontal-scroll threshold', () => {
-    expect(minTableWidth(columns)).toBe(120 + 240 + 128 + 132 + 80 + 120 + 148)
+    expect(minTableWidth(columns)).toBe(120 + 240 + 128 + 132 + 80 + 120 + 148 + 56)
   })
 })
 

@@ -172,7 +172,22 @@ export default definePreview({
     // The theme decorator paints the canvas token, so the backgrounds toolbar would only conflict.
     backgrounds: { disable: true },
     // Fail story tests on accessibility violations instead of only reporting them.
-    a11y: { test: 'error' },
+    a11y: {
+      test: 'error',
+      config: {
+        rules: [
+          {
+            // axe's best-practice "table header text should not be empty"
+            // wants VISIBLE text. A data table's utility columns (row actions)
+            // have a header named for screen readers only (VisuallyHidden
+            // "Actions"), marked data-utility; every other header is still checked.
+            id: 'empty-table-header',
+            selector:
+              'th:not([role]):not([data-utility]), [role="rowheader"], [role="columnheader"]:not([data-utility])',
+          },
+        ],
+      },
+    },
   },
 
   decorators: [

@@ -21,8 +21,9 @@ export function DataTableColumnToggle({ className }: DataTableColumnToggleProps)
   const { table } = useDataTableContext('ColumnToggle')
   const { columnVisibility } = table
   const announce = useAnnounce()
+  // Utility columns (selection, row actions) aren't data the user would hide.
   const columns = (table.columns as readonly ColumnLike[]).filter(
-    (column) => columnIdOf(column) !== SELECTION_COLUMN_ID,
+    (column) => columnIdOf(column) !== SELECTION_COLUMN_ID && !column.meta?.utility,
   )
 
   return (

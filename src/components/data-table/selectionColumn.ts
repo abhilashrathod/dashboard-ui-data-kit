@@ -20,5 +20,6 @@ export const selectionColumn: DataColumnDef<RowData> = {
     width: { min: 64, ideal: 64 },
     // The checkbox takes focus itself, in the header and in every row.
     cellKind: 'widget',
+    utility: true,
   },
 }

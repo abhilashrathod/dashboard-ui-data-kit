@@ -12,6 +12,9 @@ import { clampPos, HEADER_ROW, type Pos } from './gridNav'
  *  | Column shown / hidden                    | column clamped                    |
  *  | Any of the above while on the header row | stays on the header               |
  *
+ * Interaction mode (a composite cell's controls, interaction.ts) ends with
+ * any page or view change: the cell it was in is gone.
+ *
  * The header exception: a sort is a view change, and it's usually made FROM
  * the header (Enter on a sort button). Moving the active cell to row 0 would
  * leave focus on the sort button while the grid thinks it's elsewhere, so the
@@ -24,6 +27,8 @@ export interface StoredActiveCell {
   pos: Pos
   /** The page the position belongs to: listKeyOf(viewKey, page, pageSize). */
   listKey: string
+  /** The active (composite) cell is in interaction mode. */
+  interacting: boolean
 }
 
 /** One page of one view. A change to it resets the active row. */
@@ -35,7 +40,7 @@ export function listKeyOf(viewKey: string, page: number, pageSize: number): stri
 export function rekeyActiveCell(stored: StoredActiveCell, listKey: string): StoredActiveCell {
   if (stored.listKey === listKey) return stored
   const row = stored.pos.row === HEADER_ROW ? HEADER_ROW : 0
-  return { listKey, pos: { row, col: stored.pos.col } }
+  return { listKey, pos: { row, col: stored.pos.col }, interacting: false }
 }
 
 /**
@@ -44,7 +49,7 @@ export function rekeyActiveCell(stored: StoredActiveCell, listKey: string): Stor
  * has fewer rows (or none, while loading) doesn't lose the position.
  */
 export function effectiveActiveCell(
-  stored: StoredActiveCell,
+  stored: Pick<StoredActiveCell, 'pos'>,
   dims: { rowCount: number; colCount: number },
 ): Pos {
   return clampPos(stored.pos, dims)

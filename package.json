@@ -19,6 +19,7 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "docs:keymap": "UPDATE_KEYMAP_DOCS=1 vitest run --project node keymap",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },

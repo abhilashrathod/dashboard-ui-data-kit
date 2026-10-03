@@ -1,27 +1,18 @@
 import { ChevronDown } from 'lucide-react'
-import { useId, useRef, useState } from 'react'
+import { useId, useRef } from 'react'
 import {
-  badgeDotVariants,
   Button,
   ConfirmDialog,
   DropdownMenu,
-  ERROR_COPY,
-  ORDER_STATUS_DISPLAY,
   Tooltip,
-  useToast,
   VisuallyHidden,
   type DataTableSelection,
 } from '@/components'
-import { BULK_STATUS_MAX_IDS, type OrderStatus } from '@/contracts'
-import { isApiError } from '@/lib/api'
+import { BULK_STATUS_MAX_IDS } from '@/contracts'
 import { formatNumber } from '@/lib/format'
-import { useBulkUpdateStatus } from '@/lib/query'
-import { useShowBulkDetails } from './bulkDetails'
-import { orders, statusWord, summarizeBulkResult } from './summarizeBulkResult'
+import { StatusMenuItems } from './StatusMenuItems'
+import { useStatusChangeFlow } from './useStatusChangeFlow'
 
-/** The statuses a bulk change can target. Pending is where orders start, not a destination. */
-const TARGETS: readonly OrderStatus[] = ['paid', 'shipped', 'refunded', 'failed']
-const DESTRUCTIVE: ReadonlySet<OrderStatus> = new Set(['refunded', 'failed'])
 const CAP_REASON = `Bulk actions support up to ${formatNumber(BULK_STATUS_MAX_IDS)} orders`
 
 /** What the action needs from the table's selection (any row type). */
@@ -29,22 +20,25 @@ export type BulkSelection = Pick<DataTableSelection<unknown>, 'ids' | 'count' | 
 
 /**
  * "Mark as…" for the selected orders: pick a status, confirm, and the server
- * applies it to each order it allows. There's no client-side pre-filtering of
- * which orders "can" move: the server is the authority on transitions, so the
- * rules live in one place, and the result says what happened to every id.
+ * applies it to each order it allows (useStatusChangeFlow, shared with the
+ * single-order paths). What's specific to the selection lives here: the 500
+ * cap, and the updated orders leaving the selection while the failed ones
+ * stay selected.
  */
 export function BulkStatusAction({ selection }: { selection: BulkSelection }) {
-  const mutation = useBulkUpdateStatus()
-  const { toast } = useToast()
-  const showDetails = useShowBulkDetails()
   const reasonId = useId()
   const triggerRef = useRef<HTMLButtonElement>(null)
-  const [target, setTarget] = useState<OrderStatus | null>(null)
-  const [open, setOpen] = useState(false)
   /** Set by a menu choice, so the menu doesn't pull focus back from the dialog it opened. */
   const choosing = useRef(false)
-  /** Ids to deselect once the dialog has closed (see onCloseAutoFocus). */
+  /** Ids to deselect once the dialog has closed (see onDialogClosed). */
   const toRemove = useRef<string[] | null>(null)
+  const flow = useStatusChangeFlow({
+    // Only the updated ids leave the selection. The failed ones STAY SELECTED,
+    // so the user can see, and act on, exactly what didn't change.
+    onResult: (result) => {
+      toRemove.current = result.updated.map((order) => order.id)
+    },
+  })
 
   if (selection.count > BULK_STATUS_MAX_IDS) {
     // Focusable (aria-disabled, not disabled), so keyboard users reach the
@@ -69,33 +63,6 @@ export function BulkStatusAction({ selection }: { selection: BulkSelection }) {
     )
   }
 
-  const confirm = async () => {
-    if (!target) return
-    let result
-    try {
-      result = await mutation.mutateAsync({ ids: selection.ids, status: target })
-    } catch (error) {
-      // ConfirmDialog shows this inline and stays open; the selection is untouched.
-      const copy = isApiError(error) ? ERROR_COPY[error.code] : ERROR_COPY.UNAVAILABLE
-      throw new Error(`${copy.title}. ${copy.description}`)
-    }
-
-    const summary = summarizeBulkResult(result, target)
-    const { failed } = result
-    const status = target
-    toast({
-      title: summary.title,
-      description: summary.description,
-      tone: summary.tone,
-      action: summary.details
-        ? { label: 'View details', onClick: () => showDetails({ status, failed }) }
-        : undefined,
-    })
-    // Only the updated ids leave the selection. The failed ones STAY SELECTED,
-    // so the user can see, and act on, exactly what didn't change.
-    toRemove.current = result.updated.map((order) => order.id)
-  }
-
   const onDialogClosed = (event: Event) => {
     // The dialog was opened from a menu item that no longer exists, so Radix
     // has nowhere to return focus: send it to the trigger, or, when nothing
@@ -112,8 +79,6 @@ export function BulkStatusAction({ selection }: { selection: BulkSelection }) {
     if (removed.length > 0) selection.remove(removed)
   }
 
-  const word = target ? statusWord(target) : ''
-
   return (
     <>
       <DropdownMenu>
@@ -129,38 +94,15 @@ export function BulkStatusAction({ selection }: { selection: BulkSelection }) {
             event.preventDefault()
           }}
         >
-          {TARGETS.map((status) => (
-            <DropdownMenu.Item
-              key={status}
-              icon={
-                <span
-                  className={badgeDotVariants({
-                    tone: ORDER_STATUS_DISPLAY[status].tone,
-                    className: 'size-2',
-                  })}
-                />
-              }
-              onSelect={() => {
-                choosing.current = true
-                setTarget(status)
-                setOpen(true)
-              }}
-            >
-              {ORDER_STATUS_DISPLAY[status].label}
-            </DropdownMenu.Item>
-          ))}
+          <StatusMenuItems
+            onSelect={(status) => {
+              choosing.current = true
+              flow.start({ ids: selection.ids, status })
+            }}
+          />
         </DropdownMenu.Content>
       </DropdownMenu>
-      <ConfirmDialog
-        open={open}
-        onOpenChange={setOpen}
-        title={`Mark ${orders(selection.count)} as ${word}?`}
-        description={`Orders that can't move to ${word} from their current status are skipped. They stay selected, so you can review them.`}
-        tone={target && DESTRUCTIVE.has(target) ? 'danger' : 'default'}
-        confirmLabel={`Mark as ${word}`}
-        onConfirm={confirm}
-        onCloseAutoFocus={onDialogClosed}
-      />
+      <ConfirmDialog {...flow.dialogProps} onCloseAutoFocus={onDialogClosed} />
     </>
   )
 }

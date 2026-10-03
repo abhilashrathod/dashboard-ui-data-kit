@@ -1,5 +1,6 @@
 import type { RowData } from '@tanstack/react-table'
-import { createContext, use } from 'react'
+import { createContext, use, type RefObject } from 'react'
+import type { UseListParamsResult } from '@/lib/url-state'
 import type { DataTableModel } from './useDataTable'
 import type { DataTableSelection } from './useSelection'
 
@@ -10,6 +11,11 @@ export interface DataTableContextValue {
   label: string
   /** A <DataTable.BulkBar> is among the root's children (the grid leaves room for it). */
   hasBulkBar: boolean
+  /**
+   * Opens DataTable.KeyboardHelp, set while one is mounted (it registers
+   * itself), so the grid's "?" can open it. A ref: registering doesn't re-render.
+   */
+  keyboardHelpRef: RefObject<(() => void) | null>
 }
 
 export const DataTableContext = createContext<DataTableContextValue | null>(null)
@@ -33,6 +39,14 @@ export interface DataTableCellContextValue {
 }
 
 export const DataTableCellContext = createContext<DataTableCellContextValue | null>(null)
+
+/**
+ * The URL writer, for cells that act on the view (CustomerCell: filter by
+ * name). Its own context, because setParams is stable while the cell context
+ * changes with every selection change: a Customer cell in every row would
+ * otherwise re-render each time a checkbox is clicked. null outside a grid.
+ */
+export const DataTableParamsContext = createContext<UseListParamsResult['setParams'] | null>(null)
 
 export function useDataTableCellContext(part: string): DataTableCellContextValue {
   const context = use(DataTableCellContext)

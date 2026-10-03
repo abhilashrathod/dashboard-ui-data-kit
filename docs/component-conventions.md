@@ -31,7 +31,7 @@ Rules every component in `src/components` follows. `Button` is the reference imp
 ## Accessibility
 
 - **Every interactive element uses the `focus-ring` utility** (or `focus-ring-within` on a wrapper whose `<input>` takes focus) and works by keyboard. Prefer native elements (`<button>`, `<input type="checkbox">`) over ARIA re-creations.
-- **Inside a data grid, the grid owns focusability.** Cells use `focus-ring-inset` (drawn inside, so the scroll container can't clip it). A control in a cell never sets its own `tabIndex`; it spreads `useFocusTargetProps()` (see [keyboard-grid.md](keyboard-grid.md)).
+- **Inside a data grid, the grid owns focusability.** Cells use `focus-ring-inset` (drawn inside, so the scroll container can't clip it). A control in a cell never sets its own `tabIndex`; it spreads `useFocusTargetProps()` (the one control of a widget cell) or `useCellInteractive()` (each control of a composite cell). See [keyboard-grid.md](keyboard-grid.md).
 - **The types enforce accessible names where they can.** `IconButton` requires `aria-label` or `aria-labelledby`, and so does `Checkbox` when it has no `label`.
 - **Never color alone.** Status shows a visible label, deltas show an arrow and a sign, and invalid inputs need visible error text from the caller (`invalid` only sets the red edge and `aria-invalid`).
 - **Busy is not disabled.** A loading `Button` keeps focus and its width. It sets `aria-busy` and `aria-disabled`, and swallows clicks, instead of using `disabled`, which would drop keyboard focus to `<body>`.

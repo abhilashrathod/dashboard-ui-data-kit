@@ -1,6 +1,7 @@
 import type { RowData } from '@tanstack/react-table'
 import type { ReactNode } from 'react'
 import type { Order, Page } from '@/contracts'
+import { OrderActionsContext, type OrderActions } from '@/features/orders/orderActions'
 import { getOrderRowId, orderColumns } from '@/features/orders/orderColumns'
 import type { DataState } from '@/lib/data-state'
 import { useListParams } from '@/lib/url-state'
@@ -28,6 +29,9 @@ export function readyPage(total: number, pageSize = 50, page = 1): DataState<Pag
   }
 }
 
+/** The Orders columns include row actions; the harness has no drawer or dialog behind them. */
+const NO_ACTIONS: OrderActions = { openDetails: () => {}, changeStatus: () => {} }
+
 /**
  * The real useListParams + useDataTable + DataTable, with a DataState handed in
  * instead of fetched: the table never fetches, so tests don't need to either.
@@ -36,9 +40,15 @@ export function TableHarness({
   dataState,
   onTable,
   selectable = false,
+  onOpenRow,
+  actions = NO_ACTIONS,
   children,
 }: {
   selectable?: boolean
+  /** Enter on a text cell (useDataTable's onOpenRow). */
+  onOpenRow?: (order: Order) => void
+  /** What the Actions column's menu calls. Default: no-ops. */
+  actions?: OrderActions
   /** Extra parts after the pagination (e.g. a BulkBar). */
   children?: ReactNode
   dataState:
@@ -54,18 +64,22 @@ export function TableHarness({
     source: { ...list, dataState: state },
     getRowId: getOrderRowId,
     selectable,
+    onOpenRow,
   })
   onTable?.(table)
   return (
-    <DataTable table={table} aria-label="Orders">
-      <DataTable.Toolbar>
-        <DataTable.Search />
-        <DataTable.ColumnToggle slot="end" />
-      </DataTable.Toolbar>
-      <DataTable.Grid />
-      <DataTable.Pagination />
-      {children}
-    </DataTable>
+    <OrderActionsContext value={actions}>
+      <DataTable table={table} aria-label="Orders">
+        <DataTable.Toolbar>
+          <DataTable.Search />
+          <DataTable.ColumnToggle slot="end" />
+          <DataTable.KeyboardHelp slot="end" />
+        </DataTable.Toolbar>
+        <DataTable.Grid />
+        <DataTable.Pagination />
+        {children}
+      </DataTable>
+    </OrderActionsContext>
   )
 }
 
@@ -79,7 +93,9 @@ export function ParamsOnlyTable({ children }: { children: ReactNode }) {
     resetParams,
   } as unknown as DataTableModel<RowData>
   return (
-    <DataTableContext value={{ table, label: 'Orders', hasBulkBar: false }}>
+    <DataTableContext
+      value={{ table, label: 'Orders', hasBulkBar: false, keyboardHelpRef: { current: null } }}
+    >
       {children}
     </DataTableContext>
   )

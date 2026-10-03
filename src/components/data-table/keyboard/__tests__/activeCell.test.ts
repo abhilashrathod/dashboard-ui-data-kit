@@ -9,9 +9,15 @@ import {
 import { HEADER_ROW } from '../gridNav'
 
 const page1 = listKeyOf('view-a', 1, 50)
-const stored = (row: number, col: number, listKey = page1): StoredActiveCell => ({
+const stored = (
+  row: number,
+  col: number,
+  listKey = page1,
+  interacting = false,
+): StoredActiveCell => ({
   pos: { row, col },
   listKey,
+  interacting,
 })
 
 describe('rekeyActiveCell', () => {
@@ -28,6 +34,16 @@ describe('rekeyActiveCell', () => {
     expect(rekeyActiveCell(stored(12, 3), next)).toEqual(stored(0, 3, next))
   })
 
+  it('ends interaction mode on a page or view change', () => {
+    const next = listKeyOf('view-a', 2, 50)
+    expect(rekeyActiveCell(stored(4, 2, page1, true), next)).toEqual(stored(0, 2, next, false))
+  })
+
+  it('keeps interaction mode across a refetch (same key)', () => {
+    const state = stored(4, 2, page1, true)
+    expect(rekeyActiveCell(state, page1)).toBe(state)
+  })
+
   it('stays on the header row across a view change (a sort made from the header)', () => {
     const next = listKeyOf('view-b', 1, 50)
     expect(rekeyActiveCell(stored(HEADER_ROW, 6), next)).toEqual(stored(HEADER_ROW, 6, next))
@@ -36,15 +52,17 @@ describe('rekeyActiveCell', () => {
 
 describe('effectiveActiveCell', () => {
   it('starts at the first data cell', () => {
-    expect(
-      effectiveActiveCell({ pos: INITIAL_ACTIVE, listKey: page1 }, { rowCount: 50, colCount: 8 }),
-    ).toEqual({ row: 0, col: 0 })
+    expect(effectiveActiveCell({ pos: INITIAL_ACTIVE }, { rowCount: 50, colCount: 8 })).toEqual({
+      row: 0,
+      col: 0,
+    })
   })
 
   it('is the header when there are no rows', () => {
-    expect(
-      effectiveActiveCell({ pos: INITIAL_ACTIVE, listKey: page1 }, { rowCount: 0, colCount: 8 }),
-    ).toEqual({ row: HEADER_ROW, col: 0 })
+    expect(effectiveActiveCell({ pos: INITIAL_ACTIVE }, { rowCount: 0, colCount: 8 })).toEqual({
+      row: HEADER_ROW,
+      col: 0,
+    })
   })
 
   it('clamps the row to a refetch with fewer rows', () => {

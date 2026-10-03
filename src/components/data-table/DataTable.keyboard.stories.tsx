@@ -1,5 +1,6 @@
 import { expect, waitFor, within } from 'storybook/test'
-import preview from '../../../.storybook/preview'
+import preview, { storyUrl } from '../../../.storybook/preview'
+import { openOverlayA11y } from '@/dev/a11y'
 import { DataTableDemo } from '@/dev/data-table-demo/DataTableDemo'
 import { columnStorageKey } from './useColumnVisibility'
 
@@ -20,10 +21,11 @@ const meta = preview.meta({
   parameters: {
     docs: {
       description: {
-        component: `The Orders grid by keyboard (docs/keyboard-grid.md). One Tab stop; arrows, Home/End, Ctrl+Home/End (Cmd+Arrow on a Mac) and PageUp/PageDown move the active cell; Space selects the row, Shift+Space a range, Ctrl/Cmd+A the page. The focus trace above the table shows the active cell, its row's aria-rowindex and the last key.
+        component: `The Orders grid by keyboard (docs/keyboard-grid.md). One Tab stop; arrows, Home/End, Ctrl+Home/End (Cmd+Arrow on a Mac) and PageUp/PageDown move the active cell; Space selects the row, Shift+Space a range, Ctrl/Cmd+A the page. Enter on the Customer cell steps into its controls (Tab cycles, Escape leaves); Enter on a text cell opens the order's drawer; ? lists every shortcut. The focus trace above the table shows the active cell, its row's aria-rowindex and the last key.
 
 **Do**
 - Mark a column \`meta.cellKind: 'widget'\` when its cell holds exactly one control, and spread \`useFocusTargetProps()\` onto that control.
+- Mark it \`'composite'\` when it holds several, and spread \`useCellInteractive()\` onto each.
 
 **Don't**
 - Don't give anything inside a cell its own \`tabIndex\`: the grid owns focusability (roving tabindex).`,
@@ -60,7 +62,7 @@ const expectAt = (row: number, col: number) =>
   expect({ row: focused().row, col: focused().col }).toEqual({ row, col })
 
 const AMOUNT = 6
-const LAST_COL = 7
+const LAST_COL = 8
 const STATUS = 3
 
 /** The grid with only the focus trace: for trying it by hand (and the Loom). */
@@ -78,7 +80,7 @@ export const KeyboardOnly = meta.story({
 
     await step('Tab from the toolbar lands on the active cell; the next Tab leaves', async () => {
       // The toolbar's last control (programmatic focus, not a click).
-      canvas.getByRole('radio', { name: 'Comfortable' }).focus()
+      canvas.getByRole('button', { name: 'Keyboard shortcuts' }).focus()
       await userEvent.tab()
       await expect(firstBox()).toHaveFocus() // row 0, col 0: a widget cell → its checkbox
       await userEvent.tab()
@@ -100,7 +102,7 @@ export const KeyboardOnly = meta.story({
     })
 
     await step('Up from Amount focuses its sort button; Enter sorts; Down returns', async () => {
-      await userEvent.keyboard('{End}{ArrowLeft}')
+      await userEvent.keyboard('{End}{ArrowLeft}{ArrowLeft}')
       await expectAt(0, AMOUNT)
       await userEvent.keyboard('{ArrowUp}')
       await expect(canvas.getByRole('button', { name: 'Amount, sort descending' })).toHaveFocus()
@@ -171,5 +173,217 @@ export const KeyboardOnly = meta.story({
       await userEvent.keyboard('{ArrowDown}')
       await expect(focused().rowEl).toHaveAttribute('aria-rowindex', '53')
     })
+  },
+})
+
+// ── 5b: composite cells, row actions, the drawer, keyboard help ─────────────
+
+const CUSTOMER = 2
+const ACTIONS = 8
+
+/** Tab into the grid from the toolbar's last control (programmatic focus, not a click). */
+async function tabIn(userEvent: { tab: () => Promise<void> }) {
+  body().getByRole('button', { name: 'Keyboard shortcuts' }).focus()
+  await userEvent.tab()
+}
+const rowAt = (index: number) => within(grid()).getAllByRole('row')[index + 1]!
+const orderIdAt = (index: number) => rowAt(index).querySelector('[aria-colindex="2"]')!.textContent
+
+/**
+ * The Customer cell holds two controls. Enter steps in (focus on the name),
+ * Tab cycles name → copy → name, Escape steps out, and the arrows move cells
+ * again. Space selects the row on the cell, but belongs to the control inside
+ * it. Then the name filters the table to that customer.
+ */
+export const CompositeCell = meta.story({
+  play: async ({ canvas, step, userEvent, loaded }) => {
+    await settled()
+    await tabIn(userEvent)
+    await userEvent.keyboard('{ArrowRight}{ArrowRight}')
+    await expectAt(0, CUSTOMER)
+    const cell = focused().element
+    const name = within(cell).getByRole('button', { name: /^Filter by / })
+    const copy = within(cell).getByRole('button', { name: /^Copy email for / })
+    const customer = name.getAttribute('aria-label')!.replace('Filter by ', '')
+
+    await step('Space on the cell selects the row', async () => {
+      await userEvent.keyboard(' ')
+      await expect(rowAt(0)).toHaveAttribute('aria-selected', 'true')
+      await expect(bulkBar()).toHaveTextContent('1 selected')
+    })
+
+    await step('Enter → the name; Tab → copy; Tab wraps; Shift+Tab wraps back', async () => {
+      await userEvent.keyboard('{Enter}')
+      await expect(name).toHaveFocus()
+      await expect(cell).toHaveAttribute('data-interacting')
+      await userEvent.tab()
+      await expect(copy).toHaveFocus()
+      await expect(copy).toBeVisible()
+      await userEvent.tab()
+      await expect(name).toHaveFocus()
+      await userEvent.tab({ shift: true })
+      await expect(copy).toHaveFocus()
+    })
+
+    await step('Space inside belongs to the control, not the row', async () => {
+      await userEvent.keyboard(' ') // the copy button: copies (or says it couldn't)
+      await expect(bulkBar()).toHaveTextContent('1 selected')
+    })
+
+    await step('Escape → back on the cell; the arrows move cells again', async () => {
+      await userEvent.keyboard('{Escape}')
+      await expect(cell).toHaveFocus()
+      await expect(cell).not.toHaveAttribute('data-interacting')
+      await userEvent.keyboard('{ArrowDown}')
+      await expectAt(1, CUSTOMER)
+      await userEvent.keyboard('{ArrowUp}')
+      await expectAt(0, CUSTOMER)
+    })
+
+    await step('Enter on the name filters the table to that customer', async () => {
+      await userEvent.keyboard('{Enter}{Enter}')
+      await expect(new URLSearchParams(storyUrl(loaded).getSearch()).get('orders.q')).toBe(customer)
+      await settled()
+      const rows = within(grid()).getAllByRole('row').slice(1)
+      await expect(rows.length).toBeGreaterThan(0)
+      for (const row of rows) await expect(row).toHaveTextContent(customer)
+      await expect(canvas.getByRole('searchbox', { name: 'Search orders' })).toHaveValue(customer)
+      // The focused name button unmounted with its row: focus is rescued to the cell.
+      await waitFor(() => expectAt(0, CUSTOMER))
+    })
+  },
+})
+
+/** Ends in interaction mode, so axe checks the cell with its controls in the tab order. */
+export const InteractionModeActive = meta.story({
+  play: async ({ userEvent }) => {
+    await settled()
+    await tabIn(userEvent)
+    await userEvent.keyboard('{ArrowRight}{ArrowRight}{Enter}')
+    await expect(focused().element).toHaveAccessibleName(/^Filter by /)
+  },
+})
+
+/**
+ * Row actions by keyboard: the Actions cell is a widget, so its ⋯ button takes
+ * focus directly; Enter opens the menu; View details opens the drawer; Escape
+ * returns focus to ⋯. Then Enter on the Amount cell opens that order's drawer,
+ * and closing it returns to the same cell.
+ */
+export const RowActionsAndDrawer = meta.story({
+  parameters: openOverlayA11y,
+  play: async ({ step, userEvent }) => {
+    await settled()
+    await tabIn(userEvent)
+
+    await step('⋯ → View details → Escape: back on ⋯', async () => {
+      await userEvent.keyboard('{End}')
+      await expectAt(0, ACTIONS)
+      const id = orderIdAt(0)
+      const trigger = body().getByRole('button', { name: `Actions for order ${id}` })
+      await expect(trigger).toHaveFocus()
+      await userEvent.keyboard('{Enter}')
+      const menu = await body().findByRole('menu')
+      await waitFor(() =>
+        expect(within(menu).getByRole('menuitem', { name: 'View details' })).toHaveFocus(),
+      )
+      await userEvent.keyboard('{Enter}')
+      const drawer = await body().findByRole('dialog', { name: id })
+      await expect(drawer).toBeVisible()
+      // As a person would: once the menu has gone (it's a dismissable layer too,
+      // and the newest layer gets Escape while it animates out).
+      await waitFor(() => expect(body().queryByRole('menu')).toBeNull())
+      await waitFor(() => expect(drawer.contains(document.activeElement)).toBe(true))
+      await userEvent.keyboard('{Escape}')
+      await waitFor(() => expect(body().queryByRole('dialog')).toBeNull(), TIMEOUT)
+      await waitFor(() => expect(trigger).toHaveFocus())
+    })
+
+    await step(
+      'Enter on Amount (row 3) → that order’s drawer → Escape: back on the same cell',
+      async () => {
+        await userEvent.keyboard('{ArrowLeft}{ArrowLeft}{ArrowDown}{ArrowDown}')
+        await expectAt(2, AMOUNT)
+        const cell = focused().element
+        const id = orderIdAt(2)
+        await userEvent.keyboard('{Enter}')
+        const drawer = await body().findByRole('dialog', { name: id })
+        await expect(within(drawer).getByText('Reference')).toBeVisible()
+        await waitFor(() => expect(drawer.contains(document.activeElement)).toBe(true))
+        await userEvent.keyboard('{Escape}')
+        await waitFor(() => expect(cell).toHaveFocus(), TIMEOUT)
+        await expect(cell).toHaveAttribute('aria-colindex', String(AMOUNT + 1))
+        await expect(cell.closest('[role="row"]')).toHaveAttribute('aria-rowindex', '4')
+      },
+    )
+  },
+})
+
+/** The drawer left open (axe with the drawer up). */
+export const DrawerOpen = meta.story({
+  parameters: openOverlayA11y,
+  play: async ({ userEvent }) => {
+    await settled()
+    await tabIn(userEvent)
+    const id = orderIdAt(0) // before the drawer hides the grid from assistive tech
+    await userEvent.keyboard('{ArrowRight}{Enter}') // the Order cell
+    const drawer = await body().findByRole('dialog', { name: id })
+    await waitFor(() => expect(drawer).toBeVisible())
+  },
+})
+
+/** The same, dark + compact. */
+export const DrawerOpenDarkCompact = meta.story({
+  globals: { theme: 'dark', density: 'compact' },
+  parameters: openOverlayA11y,
+  play: DrawerOpen.input.play,
+})
+
+/** The row actions menu left open, with its status submenu (axe with the menus up). */
+export const RowActionsMenuOpen = meta.story({
+  parameters: openOverlayA11y,
+  play: async ({ userEvent }) => {
+    await settled()
+    await tabIn(userEvent)
+    await userEvent.keyboard('{End}{Enter}')
+    const menu = await body().findByRole('menu')
+    await waitFor(() =>
+      expect(within(menu).getByRole('menuitem', { name: 'View details' })).toHaveFocus(),
+    )
+    await userEvent.keyboard('{ArrowDown}{ArrowRight}') // Mark as… → its submenu
+    await waitFor(() => expect(body().getAllByRole('menu')).toHaveLength(2))
+  },
+})
+
+/** "?" in the grid opens the shortcuts; Escape returns focus to the active cell. */
+export const KeyboardHelp = meta.story({
+  play: async ({ userEvent }) => {
+    await settled()
+    await tabIn(userEvent)
+    await userEvent.keyboard('{ArrowDown}{ArrowRight}')
+    const cell = focused().element
+    await userEvent.keyboard('?')
+    const dialog = await body().findByRole('dialog', { name: 'Keyboard shortcuts' })
+    await waitFor(() => expect(dialog).toBeVisible()) // after the enter animation
+    for (const group of ['Navigation', 'Selection', 'Cells & actions']) {
+      await expect(within(dialog).getByRole('heading', { name: group })).toBeVisible()
+    }
+    await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true))
+    await userEvent.keyboard('{Escape}')
+    await waitFor(() => expect(cell).toHaveFocus(), TIMEOUT)
+  },
+})
+
+/** The shortcuts dialog left open (axe), in dark mode. */
+export const KeyboardHelpOpenDark = meta.story({
+  globals: { theme: 'dark' },
+  parameters: openOverlayA11y,
+  play: async ({ userEvent }) => {
+    await settled()
+    await tabIn(userEvent)
+    await userEvent.keyboard('?')
+    await waitFor(() =>
+      expect(body().getByRole('dialog', { name: 'Keyboard shortcuts' })).toBeVisible(),
+    )
   },
 })
