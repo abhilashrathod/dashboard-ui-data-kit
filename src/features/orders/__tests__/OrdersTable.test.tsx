@@ -11,9 +11,9 @@ async function setup() {
   renderWithProviders(<OrdersTable />)
   const grid = await screen.findByRole('grid', { name: 'Orders' }, { timeout: 4000 })
   await waitFor(() => expect(within(grid).getAllByRole('row')).toHaveLength(51))
-  // Tab in from the toolbar's last control, then across to `col` on row `row`.
+  // Tab in from the filter row's last control, then across to `col` on row `row`.
   const goTo = async (row: number, col: number) => {
-    screen.getByRole('button', { name: 'Keyboard shortcuts' }).focus()
+    within(screen.getByRole('group', { name: 'Filters' })).getAllByRole('button').at(-1)!.focus()
     await user.tab()
     for (let i = 0; i < col; i++) await user.keyboard('{ArrowRight}')
     for (let i = 0; i < row; i++) await user.keyboard('{ArrowDown}')

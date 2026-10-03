@@ -96,11 +96,11 @@ describe('CreateOrderInput', () => {
     expect(result.error?.issues.map((issue) => issue.path)).toEqual([expectedPath])
   })
 
-  it('uses English error messages (zod/mini loads none unless a locale is configured)', () => {
+  it("carries the form's own messages, so the server's 422 matches the form", () => {
     const result = CreateOrderInput.safeParse({
       ...validCreateOrderInput,
       customer: { ...validCreateOrderInput.customer, email: 'nope' },
     })
-    expect(result.error?.issues[0]?.message).toBe('Invalid email address')
+    expect(result.error?.issues[0]?.message).toBe('Enter a valid email')
   })
 })

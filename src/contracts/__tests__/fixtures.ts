@@ -73,6 +73,6 @@ export const validApiErrorBody: ApiErrorBody = {
   code: 'VALIDATION',
   message: 'Request body is invalid',
   requestId: 'req_7Hc2kQ',
-  issues: ['customer.email: Invalid email address'],
-  fieldErrors: { 'customer.email': ['Invalid email address'] },
+  issues: ['customer.email: Enter a valid email'],
+  fieldErrors: { 'customer.email': ['Enter a valid email'] },
 }

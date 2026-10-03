@@ -2,7 +2,7 @@ import { Plus } from 'lucide-react'
 import { Button } from '@/components'
 import { OrdersTable } from '@/features/orders/OrdersTable'
 import { ORDERS_NAMESPACE } from '../navigation'
-import { useOpenNewOrder } from '../newOrder'
+import { useOpenNewOrder } from '../useOpenNewOrder'
 
 export function OrdersView() {
   const openNewOrder = useOpenNewOrder()

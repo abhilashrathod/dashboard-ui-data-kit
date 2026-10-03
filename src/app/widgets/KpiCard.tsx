@@ -145,5 +145,3 @@ export function KpiCard({ id, range }: { id: KpiId; range: MetricsRange }) {
     </Card>
   )
 }
-
-export const KPI_IDS: readonly KpiId[] = ['revenue', 'orders', 'aov', 'refundRate']

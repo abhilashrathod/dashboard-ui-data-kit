@@ -34,7 +34,7 @@ export function Form<TValues extends FieldValues, TOutput = TValues>({
 }: FormProps<TValues, TOutput>) {
   return (
     <FormProvider {...form}>
-      <form id={id} noValidate onSubmit={form.handleSubmit(onSubmit)} className={className}>
+      <form id={id} noValidate onSubmit={(event) => void form.handleSubmit(onSubmit)(event)} className={className}>
         {children}
       </form>
     </FormProvider>

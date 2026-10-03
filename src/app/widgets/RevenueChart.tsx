@@ -41,7 +41,7 @@ const formatSpan = (start: string, end: string) =>
  * labeled by its first day. Index i of `previousPoints` is day i of the
  * previous period, so both series bucket the same way.
  */
-export function toBuckets(series: RevenueSeriesResponse): Bucket[] {
+function toBuckets(series: RevenueSeriesResponse): Bucket[] {
   const { points, range } = series
   const previous = series.previousPoints ?? []
   const size = range === '90d' ? 7 : 1

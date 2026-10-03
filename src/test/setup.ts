@@ -19,8 +19,9 @@ globalThis.ResizeObserver ??= class {
   disconnect() {}
 }
 
+// A presence check isn't enough: jsdom 30 has a `matchMedia` key set to undefined.
 function polyfill(target: object, name: string, value: unknown) {
-  if (!(name in target))
+  if (typeof (target as Record<string, unknown>)[name] !== 'function')
     Object.defineProperty(target, name, { value, configurable: true, writable: true })
 }
 polyfill(Element.prototype, 'hasPointerCapture', () => false)

@@ -33,7 +33,7 @@ export function apiError(
 }
 
 /**
- * Zod issues → { "customer.email": ["Invalid email address"], … }. Dot-path
+ * Zod issues → { "customer.email": ["Enter a valid email"], … }. Dot-path
  * keys map directly onto React Hook Form field names. Issues at the root
  * (e.g. the body isn't an object) have no field, so they're left out here;
  * use zodToIssues for those.
@@ -48,7 +48,7 @@ export function zodToFieldErrors(error: z.core.$ZodError): Record<string, string
   return fieldErrors
 }
 
-/** Zod issues → ["customer.email: Invalid email address", …], including root-level ones. */
+/** Zod issues → ["customer.email: Enter a valid email", …], including root-level ones. */
 export function zodToIssues(error: z.core.$ZodError): string[] {
   return error.issues.map((issue) =>
     issue.path.length === 0

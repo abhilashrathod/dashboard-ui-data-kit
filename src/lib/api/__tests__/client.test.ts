@@ -68,7 +68,7 @@ describe('apiFetch / typed endpoints', () => {
     )
     expect(error).toBeInstanceOf(ApiError)
     expect(error).toMatchObject({ status: 422, code: 'VALIDATION' })
-    expect((error as ApiError).fieldErrors?.['customer.email']).toEqual(['Invalid email address'])
+    expect((error as ApiError).fieldErrors?.['customer.email']).toEqual(['Enter a valid email'])
   })
 
   it('network failure → ApiError status 0, UNAVAILABLE', async () => {

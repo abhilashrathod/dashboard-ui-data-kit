@@ -58,6 +58,9 @@ function focused() {
     rowEl: element.closest('[role="row"]'),
   }
 }
+/** The last control before the grid in tab order: the filter row's last button. */
+const lastControlBeforeGrid = () =>
+  within(body().getByRole('group', { name: 'Filters' })).getAllByRole('button').at(-1)!
 const expectAt = (row: number, col: number) =>
   expect({ row: focused().row, col: focused().col }).toEqual({ row, col })
 
@@ -78,9 +81,9 @@ export const KeyboardOnly = meta.story({
     await settled()
     const firstBox = () => within(grid()).getAllByRole('checkbox', { name: /^Select order/ })[0]!
 
-    await step('Tab from the toolbar lands on the active cell; the next Tab leaves', async () => {
-      // The toolbar's last control (programmatic focus, not a click).
-      canvas.getByRole('button', { name: 'Keyboard shortcuts' }).focus()
+    await step('Tab from the filter row lands on the active cell; the next Tab leaves', async () => {
+      // The last control before the grid (programmatic focus, not a click).
+      lastControlBeforeGrid().focus()
       await userEvent.tab()
       await expect(firstBox()).toHaveFocus() // row 0, col 0: a widget cell → its checkbox
       await userEvent.tab()
@@ -181,9 +184,9 @@ export const KeyboardOnly = meta.story({
 const CUSTOMER = 2
 const ACTIONS = 8
 
-/** Tab into the grid from the toolbar's last control (programmatic focus, not a click). */
+/** Tab into the grid from the last control before it (programmatic focus, not a click). */
 async function tabIn(userEvent: { tab: () => Promise<void> }) {
-  body().getByRole('button', { name: 'Keyboard shortcuts' }).focus()
+  lastControlBeforeGrid().focus()
   await userEvent.tab()
 }
 const rowAt = (index: number) => within(grid()).getAllByRole('row')[index + 1]!

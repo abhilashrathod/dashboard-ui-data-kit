@@ -1,12 +1,14 @@
 import { Plus } from 'lucide-react'
 import { Button, Select } from '@/components'
-import { MetricsRange } from '@/contracts'
+import { MetricsRange, type Kpi } from '@/contracts'
 import { useDashRange } from '../navigation'
-import { useOpenNewOrder } from '../newOrder'
-import { KPI_IDS, KpiCard } from '../widgets/KpiCard'
+import { useOpenNewOrder } from '../useOpenNewOrder'
+import { KpiCard } from '../widgets/KpiCard'
 import { RecentOrders } from '../widgets/RecentOrders'
 import { RevenueChart } from '../widgets/RevenueChart'
 import { StatusBreakdown } from '../widgets/StatusBreakdown'
+
+const KPI_IDS: readonly Kpi['id'][] = ['revenue', 'orders', 'aov', 'refundRate']
 
 const RANGE_OPTIONS = [
   { value: '7d', label: 'Last 7 days' },

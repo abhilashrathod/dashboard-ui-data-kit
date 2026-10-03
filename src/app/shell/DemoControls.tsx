@@ -51,7 +51,7 @@ function DemoControlsPopover() {
   const queryClient = useQueryClient()
   const { toast } = useToast()
   // Seeded from the mock layer, so ?network= / ?fail= on load show up here.
-  const [state, setState] = useState<DemoNetworkState>(mockNetwork.read)
+  const [state, setState] = useState<DemoNetworkState>(() => mockNetwork.read())
   const ids = { mode: useId(), endpoints: useId() }
 
   /** Apply, then reset every query so the new conditions show immediately. */

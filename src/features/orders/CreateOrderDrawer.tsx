@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQueryClient } from '@tanstack/react-query'
 import { Shuffle } from 'lucide-react'
-import { useRef, useState, type ChangeEvent } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent, type RefObject } from 'react'
 import { Controller, useForm, useWatch, type Control } from 'react-hook-form'
 import {
   Amount,
@@ -48,7 +48,7 @@ type FormValues = z.input<typeof CreateOrderInput>
 const REFERENCE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
 
 /** A random PO-XXXXX reference (A–Z, 0–9). */
-export function generateReference(): string {
+function generateReference(): string {
   let suffix = ''
   for (let i = 0; i < 5; i++) {
     suffix += REFERENCE_CHARS[Math.floor(Math.random() * REFERENCE_CHARS.length)]
@@ -98,7 +98,7 @@ export function CreateOrderDrawer({ open, onOpenChange, onViewOrder }: CreateOrd
         <DrawerContent size="md" aria-describedby={undefined}>
           {open ? (
             <CreateOrderForm
-              guard={guard}
+              guardRef={guard}
               onCancel={() => requestOpenChange(false)}
               onCreated={(order) => {
                 guard.current = { dirty: false, submitting: false }
@@ -128,12 +128,12 @@ export function CreateOrderDrawer({ open, onOpenChange, onViewOrder }: CreateOrd
 }
 
 function CreateOrderForm({
-  guard,
+  guardRef,
   onCancel,
   onCreated,
   onViewOrder,
 }: {
-  guard: { current: { dirty: boolean; submitting: boolean } }
+  guardRef: RefObject<{ dirty: boolean; submitting: boolean }>
   onCancel: () => void
   onCreated: (order: Order) => void
   onViewOrder: (id: string) => void
@@ -152,8 +152,11 @@ function CreateOrderForm({
   })
   const { register, control, formState, setValue } = form
   const submitting = formState.isSubmitting
+  const dirty = formState.isDirty
   // Read by the drawer when a close is requested (a ref: no re-render needed).
-  guard.current = { dirty: formState.isDirty, submitting }
+  useEffect(() => {
+    guardRef.current = { dirty, submitting }
+  }, [guardRef, dirty, submitting])
 
   const onSubmit = async (values: CreateOrderInput) => {
     setFormError(null)
@@ -203,7 +206,7 @@ function CreateOrderForm({
     const { selectionStart, selectionEnd } = input
     input.value = input.value.toUpperCase()
     input.setSelectionRange(selectionStart, selectionEnd)
-    return reference.onChange(event)
+    void reference.onChange(event)
   }
 
   const errorCopy = formError ? ERROR_COPY[formError.code] : undefined

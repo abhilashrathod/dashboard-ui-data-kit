@@ -5,11 +5,14 @@ import { setNetworkConfig } from '@/mocks/network'
 import { renderWithProviders } from '@/test/render'
 import { App } from './App'
 
+// Overview is the default view; these tests are about the Orders one.
+const ORDERS_URL = '?view=orders'
+
 const ordersRegion = () => screen.getByRole('region', { name: 'Orders' })
 
 describe('App', () => {
   it('shows the orders table from the mock API', async () => {
-    renderWithProviders(<App />)
+    renderWithProviders(<App />, { url: ORDERS_URL })
 
     expect(screen.getByRole('heading', { level: 1, name: 'Orders' })).toBeInTheDocument()
     // Header row + one page of 50. (The grid role only appears once rows are ready.)
@@ -22,7 +25,7 @@ describe('App', () => {
   })
 
   it('opens a shared view from the URL', async () => {
-    renderWithProviders(<App />, { url: '?orders.page=3&orders.sort=-amount' })
+    renderWithProviders(<App />, { url: `${ORDERS_URL}&orders.page=3&orders.sort=-amount` })
 
     await screen.findByRole('grid', { name: 'Orders' })
     expect(screen.getByRole('columnheader', { name: /^Amount/ })).toHaveAttribute(
@@ -35,7 +38,7 @@ describe('App', () => {
   it('shows the error state, with the request id, when the API fails', async () => {
     setNetworkConfig({ mode: 'error' })
 
-    renderWithProviders(<App />)
+    renderWithProviders(<App />, { url: ORDERS_URL })
 
     expect(await within(ordersRegion()).findByText(/req_000001/)).toBeInTheDocument()
     // The toolbar stays usable.

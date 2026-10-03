@@ -1,8 +1,7 @@
-import { createContext, use, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { CreateOrderDrawer } from '@/features/orders/CreateOrderDrawer'
 import { useGoToOrders } from './navigation'
-
-const OpenNewOrderContext = createContext<(() => void) | null>(null)
+import { OpenNewOrderContext } from './useOpenNewOrder'
 
 /**
  * One "New order" drawer for the whole app, so the Overview and Orders
@@ -23,10 +22,4 @@ export function NewOrderProvider({ children }: { children: ReactNode }) {
       />
     </OpenNewOrderContext>
   )
-}
-
-export function useOpenNewOrder(): () => void {
-  const open = use(OpenNewOrderContext)
-  if (!open) throw new Error('useOpenNewOrder must be used inside <NewOrderProvider>')
-  return open
 }
