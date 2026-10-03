@@ -10,12 +10,13 @@ import {
   type OrderStatus,
   pageSchema,
   RevenueSeriesResponse,
+  StatusBreakdownResponse,
 } from '@/contracts'
 import { z } from '@/contracts/zod'
 import { db } from './data/db'
 import { apiError, json, zodToFieldErrors, zodToIssues } from './http'
 import { type EndpointKey, withNetwork } from './network'
-import { computeKpis, computeRevenueSeries } from './query/metrics'
+import { computeKpis, computeRevenueSeries, computeStatusBreakdown } from './query/metrics'
 import { queryOrders } from './query/queryOrders'
 
 /** Which status changes the bulk endpoint allows. Anything not listed is rejected per order. */
@@ -184,7 +185,22 @@ export const handlers = [
       return ok(
         'metrics.revenue',
         RevenueSeriesResponse,
-        computeRevenueSeries(ctx.orders, parsed.range, db.anchor),
+        computeRevenueSeries(ctx.orders, parsed.range, db.anchor, {
+          compare: new URL(request.url).searchParams.get('compare') === '1',
+        }),
+      )
+    }),
+  ),
+
+  http.get(
+    '/api/metrics/status-breakdown',
+    withNetwork('metrics.statusBreakdown', ({ request }, ctx) => {
+      const parsed = parseRange(request)
+      if (!parsed.ok) return parsed.error
+      return ok(
+        'metrics.statusBreakdown',
+        StatusBreakdownResponse,
+        computeStatusBreakdown(ctx.orders, parsed.range, db.anchor),
       )
     }),
   ),

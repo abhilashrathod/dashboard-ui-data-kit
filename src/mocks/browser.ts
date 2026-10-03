@@ -1,4 +1,5 @@
 import { setupWorker, type StartOptions } from 'msw/browser'
+import { resetDb } from './data/db'
 import { handlers } from './handlers'
 import {
   getNetworkConfig,
@@ -14,6 +15,8 @@ export interface MockNetworkHandle {
   get: typeof getNetworkConfig
   set: typeof setNetworkConfig
   reset: typeof resetNetworkConfig
+  /** Re-seed the in-memory orders (undoes creates and status changes). */
+  resetDb: () => void
 }
 
 declare global {
@@ -37,6 +40,7 @@ export async function startMockWorker(options: StartOptions = {}): Promise<typeo
     get: getNetworkConfig,
     set: setNetworkConfig,
     reset: resetNetworkConfig,
+    resetDb: () => resetDb(),
   }
 
   await worker.start({

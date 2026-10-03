@@ -18,14 +18,16 @@
  *               periods are exactly N whole days and the series has N points.
  */
 
-import type {
-  Kpi,
-  KpiResponse,
-  MetricsRange,
-  Order,
-  OrderStatus,
-  RevenuePoint,
-  RevenueSeriesResponse,
+import {
+  ORDER_STATUSES,
+  type Kpi,
+  type KpiResponse,
+  type MetricsRange,
+  type Order,
+  type OrderStatus,
+  type RevenuePoint,
+  type RevenueSeriesResponse,
+  type StatusBreakdownResponse,
 } from '@/contracts'
 
 const DAY_MS = 86_400_000
@@ -119,30 +121,62 @@ export function computeKpis(
   }
 }
 
-/** One point per UTC day of the current period, ascending, zero-filled: exactly N points. */
-export function computeRevenueSeries(
-  orders: readonly Order[],
-  range: MetricsRange,
-  anchor: Date,
-): RevenueSeriesResponse {
-  const { current } = periodsFor(range, anchor)
-  const days = RANGE_DAYS[range]
+/** One point per UTC day of `period`, ascending, zero-filled: exactly N points. */
+function dailyPoints(orders: readonly Order[], period: Period, days: number): RevenuePoint[] {
   const cents = new Array<number>(days).fill(0)
   const counts = new Array<number>(days).fill(0)
 
   for (const order of orders) {
     if (!REVENUE_STATUSES.has(order.status)) continue
     const time = Date.parse(order.createdAt)
-    if (!isWithin(time, current)) continue
-    const day = Math.floor((time - current.start) / DAY_MS)
+    if (!isWithin(time, period)) continue
+    const day = Math.floor((time - period.start) / DAY_MS)
     cents[day] = (cents[day] ?? 0) + toCents(order.amount)
     counts[day] = (counts[day] ?? 0) + 1
   }
 
-  const points: RevenuePoint[] = cents.map((dayCents, day) => ({
-    date: new Date(current.start + day * DAY_MS).toISOString().slice(0, 10),
+  return cents.map((dayCents, day) => ({
+    date: new Date(period.start + day * DAY_MS).toISOString().slice(0, 10),
     revenue: fromCents(dayCents),
     orders: counts[day] ?? 0,
   }))
-  return { range, points }
+}
+
+/**
+ * One point per UTC day of the current period, ascending, zero-filled: exactly
+ * N points. With `compare`, also `previousPoints`: the previous period, the
+ * same N days, so index i of both arrays is "day i of its period".
+ */
+export function computeRevenueSeries(
+  orders: readonly Order[],
+  range: MetricsRange,
+  anchor: Date,
+  { compare = false }: { compare?: boolean } = {},
+): RevenueSeriesResponse {
+  const { current, previous } = periodsFor(range, anchor)
+  const days = RANGE_DAYS[range]
+  const points = dailyPoints(orders, current, days)
+  if (!compare) return { range, points }
+  return { range, points, previousPoints: dailyPoints(orders, previous, days) }
+}
+
+/** Orders created in the current period, counted by status (every status, zero-filled). */
+export function computeStatusBreakdown(
+  orders: readonly Order[],
+  range: MetricsRange,
+  anchor: Date,
+): StatusBreakdownResponse {
+  const { current } = periodsFor(range, anchor)
+  const counts = new Map<OrderStatus, number>(ORDER_STATUSES.map((status) => [status, 0]))
+  let total = 0
+  for (const order of orders) {
+    if (!isWithin(Date.parse(order.createdAt), current)) continue
+    counts.set(order.status, (counts.get(order.status) ?? 0) + 1)
+    total++
+  }
+  return {
+    range,
+    total,
+    items: ORDER_STATUSES.map((status) => ({ status, count: counts.get(status) ?? 0 })),
+  }
 }

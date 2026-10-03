@@ -197,14 +197,15 @@
       opacity: 0;
     }
   }
+  /* --drawer-from: -100% slides from the left edge instead (Drawer side="left"). */
   @keyframes drawer-in {
     from {
-      transform: translateX(100%);
+      transform: translateX(var(--drawer-from, 100%));
     }
   }
   @keyframes drawer-out {
     to {
-      transform: translateX(100%);
+      transform: translateX(var(--drawer-from, 100%));
     }
   }
   @keyframes toast-in {

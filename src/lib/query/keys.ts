@@ -21,6 +21,10 @@ export const queryKeys = {
   metrics: {
     all: ['metrics'] as const,
     kpis: (range: MetricsRange) => [...queryKeys.metrics.all, 'kpis', range] as const,
-    revenue: (range: MetricsRange) => [...queryKeys.metrics.all, 'revenue', range] as const,
+    /** `compare` = the response includes previousPoints. */
+    revenue: (range: MetricsRange, compare = false) =>
+      [...queryKeys.metrics.all, 'revenue', range, compare ? 'compare' : 'current'] as const,
+    statusBreakdown: (range: MetricsRange) =>
+      [...queryKeys.metrics.all, 'statusBreakdown', range] as const,
   },
 }

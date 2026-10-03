@@ -12,6 +12,7 @@ export const ENDPOINT_KEYS = [
   'orders.bulkStatus',
   'metrics.kpis',
   'metrics.revenue',
+  'metrics.statusBreakdown',
 ] as const
 export type EndpointKey = (typeof ENDPOINT_KEYS)[number]
 

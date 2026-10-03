@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import type { Order, Page } from '@/contracts'
 import { useDataState } from '@/lib/data-state'
-import { clearFilters, useListParams } from '@/lib/url-state'
+import { clearFilters, useListParams, type ListDefaults } from '@/lib/url-state'
 import { useOrdersList, type UseOrdersListOptions } from './useOrdersList'
 
 const isEmpty = (page: Page<Order>) => page.total === 0
@@ -10,8 +10,11 @@ const isEmpty = (page: Page<Order>) => page.total === 0
  * Glue for the orders table: URL params → list query → DataState.
  * Stage 4's DataTable consumes this.
  */
-export function useOrdersTableData(namespace = 'orders', options?: UseOrdersListOptions) {
-  const { params, setParams, resetParams, key } = useListParams(namespace)
+export function useOrdersTableData(
+  namespace = 'orders',
+  { defaults, ...options }: UseOrdersListOptions & { defaults?: ListDefaults } = {},
+) {
+  const { params, setParams, resetParams, key } = useListParams(namespace, { defaults })
   const query = useOrdersList(params, options)
   const clear = useCallback(
     () => setParams((prev) => ({ ...clearFilters()(prev), q: undefined })),

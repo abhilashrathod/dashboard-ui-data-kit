@@ -23,15 +23,20 @@ export const DrawerClose = DialogPrimitive.Close
 
 export const drawerContentVariants = cva(
   [
-    'fixed inset-y-0 right-0 flex h-dvh max-w-[100vw] flex-col rounded-none rounded-l-lg',
+    'fixed inset-y-0 flex h-dvh max-w-[100vw] flex-col rounded-none',
     'data-[state=open]:animate-drawer-in data-[state=closed]:animate-drawer-out',
     'motion-reduce:data-[state=open]:animate-fade-in motion-reduce:data-[state=closed]:animate-fade-out',
   ],
   {
     variants: {
       size: { sm: 'w-95', md: 'w-120', lg: 'w-160' },
+      /** The edge it slides in from. 'left' is for navigation (a mobile sidebar). */
+      side: {
+        right: 'right-0 rounded-l-lg',
+        left: 'left-0 rounded-r-lg [--drawer-from:-100%]',
+      },
     },
-    defaultVariants: { size: 'md' },
+    defaultVariants: { size: 'md', side: 'right' },
   },
 )
 
@@ -42,6 +47,7 @@ export type DrawerContentProps = ComponentProps<typeof DialogPrimitive.Content> 
 
 export function DrawerContent({
   size,
+  side,
   hideClose = false,
   className,
   children,
@@ -65,7 +71,7 @@ export function DrawerContent({
         }}
         className={cn(
           overlayPanelVariants({ layer: 'modal', motion: 'none' }),
-          drawerContentVariants({ size }),
+          drawerContentVariants({ size, side }),
           className,
         )}
         {...props}

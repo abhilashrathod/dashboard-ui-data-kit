@@ -1,3 +1,4 @@
+import { OrderStatus } from './order'
 import { z } from './zod'
 
 export const MetricsRange = z.enum(['7d', '30d', '90d'])
@@ -30,5 +31,24 @@ export type RevenuePoint = z.infer<typeof RevenuePoint>
 export const RevenueSeriesResponse = z.object({
   range: MetricsRange,
   points: z.array(RevenuePoint),
+  /**
+   * Only with `compare=1`: the preceding period of equal length, one point per
+   * day like `points` (same length, same order), so index i lines up with points[i].
+   */
+  previousPoints: z.optional(z.array(RevenuePoint)),
 })
 export type RevenueSeriesResponse = z.infer<typeof RevenueSeriesResponse>
+
+export const StatusBreakdownItem = z.object({
+  status: OrderStatus,
+  count: z.int().check(z.nonnegative()),
+})
+export type StatusBreakdownItem = z.infer<typeof StatusBreakdownItem>
+
+/** Orders created in the current period, by status. Every status is listed, zero-filled. */
+export const StatusBreakdownResponse = z.object({
+  range: MetricsRange,
+  total: z.int().check(z.nonnegative()),
+  items: z.array(StatusBreakdownItem),
+})
+export type StatusBreakdownResponse = z.infer<typeof StatusBreakdownResponse>
