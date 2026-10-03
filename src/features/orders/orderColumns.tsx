@@ -1,6 +1,7 @@
 import { Badge, CustomerCell, createColumnHelper, dataColumn, AmountCell } from '@/components'
 import { DateCell, StatusCell, TextCell } from '@/components'
-import type { Channel, Order } from '@/contracts'
+import { ORDER_STATUS_DISPLAY } from '@/components'
+import { Channel, ORDER_STATUSES, type Order } from '@/contracts'
 import { formatNumber } from '@/lib/format'
 import { RowActions } from './RowActions'
 
@@ -10,6 +11,15 @@ export const CHANNEL_LABEL: Record<Channel, string> = {
   marketplace: 'Marketplace',
   pos: 'In store',
 }
+
+const STATUS_OPTIONS = ORDER_STATUSES.map((status) => ({
+  value: status,
+  label: ORDER_STATUS_DISPLAY[status].label,
+}))
+const CHANNEL_OPTIONS = Channel.options.map((channel) => ({
+  value: channel,
+  label: CHANNEL_LABEL[channel],
+}))
 
 const helper = createColumnHelper<Order>()
 
@@ -42,11 +52,20 @@ export const orderColumns = helper.columns([
     ),
   }),
   dataColumn(helper, 'status', {
-    meta: { label: 'Status', sortField: 'status', width: { min: 128, ideal: 140 } },
+    meta: {
+      label: 'Status',
+      sortField: 'status',
+      width: { min: 128, ideal: 140 },
+      filter: { field: 'status', type: 'enum', options: STATUS_OPTIONS },
+    },
     cell: (info) => <StatusCell status={info.getValue()} />,
   }),
   dataColumn(helper, 'channel', {
-    meta: { label: 'Channel', width: { min: 132, ideal: 144 } },
+    meta: {
+      label: 'Channel',
+      width: { min: 132, ideal: 144 },
+      filter: { field: 'channel', type: 'enum', options: CHANNEL_OPTIONS },
+    },
     cell: (info) => (
       <Badge variant="outline" tone="neutral">
         {CHANNEL_LABEL[info.getValue()]}
@@ -63,6 +82,7 @@ export const orderColumns = helper.columns([
       align: 'end',
       sortField: 'amount',
       width: { min: 120, ideal: 136 },
+      filter: { field: 'amount', type: 'number' },
       // A plain number with 2 decimals, no symbol, so spreadsheets can sum it.
       csv: (order) => order.amount.toFixed(2),
     },
@@ -70,7 +90,12 @@ export const orderColumns = helper.columns([
   }),
   dataColumn(helper, 'createdAt', {
     // CSV: the ISO timestamp (the accessor value), unambiguous in any locale.
-    meta: { label: 'Created', sortField: 'createdAt', width: { min: 148, ideal: 168 } },
+    meta: {
+      label: 'Created',
+      sortField: 'createdAt',
+      width: { min: 148, ideal: 168 },
+      filter: { field: 'createdAt', type: 'date' },
+    },
     cell: (info) => <DateCell value={info.getValue()} showTime />,
   }),
   helper.display({

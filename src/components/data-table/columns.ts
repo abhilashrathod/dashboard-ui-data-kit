@@ -85,8 +85,18 @@ export interface DataColumnMeta<TData = any> {
    * `hideable: false` and `csv: false` with it.
    */
   utility?: boolean
-  // filter?: DataColumnFilter  (Stage 6: the filter UI and how it maps onto a FilterField)
+  /**
+   * Makes the column filterable: DataTable.Filters renders a pill for it, and
+   * `field` is the API filter field it writes (docs/data-table.md#filters).
+   */
+  filter?: DataColumnFilter
 }
+
+/** How a column filters, and which API filter field it maps onto. */
+export type DataColumnFilter =
+  | { field: 'status' | 'channel'; type: 'enum'; options: { value: string; label: string }[] }
+  | { field: 'amount'; type: 'number' }
+  | { field: 'createdAt'; type: 'date' }
 
 /* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-object-type --
  * Declaration merging: the type parameters must match TanStack's exactly, used or not. */

@@ -30,6 +30,13 @@ export interface DataTableSource<TData> {
   setParams: UseListParamsResult['setParams']
   resetParams: UseListParamsResult['resetParams']
   dataState: DataState<Page<TData>>
+  /**
+   * Parts of the link the lenient decoder threw away (useListParams). Absent:
+   * none. DataTable.Filters shows a notice when there are some.
+   */
+  dropped?: readonly string[]
+  /** The URL namespace the params live in, for links to a saved view. Absent: no view links. */
+  namespace?: string
 }
 
 export interface UseDataTableOptions<TData extends RowData> {
@@ -94,7 +101,7 @@ export function useDataTable<TData extends RowData>({
   getRowLabel,
   onOpenRow,
 }: UseDataTableOptions<TData>): DataTableModel<TData> {
-  const { params, setParams, resetParams, dataState } = source
+  const { params, setParams, resetParams, dataState, dropped, namespace } = source
 
   const columns = useMemo(
     () => (selectable ? [selectionColumn as DataColumnDef<TData>, ...dataColumns] : dataColumns),
@@ -188,6 +195,8 @@ export function useDataTable<TData extends RowData>({
     setParams,
     resetParams,
     dataState,
+    dropped,
+    namespace,
     columns,
     columnVisibility,
     selection,

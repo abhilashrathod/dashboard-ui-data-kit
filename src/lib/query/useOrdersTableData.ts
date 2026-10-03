@@ -14,7 +14,7 @@ export function useOrdersTableData(
   namespace = 'orders',
   { defaults, ...options }: UseOrdersListOptions & { defaults?: ListDefaults } = {},
 ) {
-  const { params, setParams, resetParams, key } = useListParams(namespace, { defaults })
+  const { params, setParams, resetParams, key, dropped } = useListParams(namespace, { defaults })
   const query = useOrdersList(params, options)
   const clear = useCallback(
     () => setParams((prev) => ({ ...clearFilters()(prev), q: undefined })),
@@ -25,5 +25,5 @@ export function useOrdersTableData(
     isFiltered: params.filters.length > 0 || !!params.q,
     clear,
   })
-  return { params, setParams, resetParams, dataState, query, key }
+  return { params, setParams, resetParams, dataState, query, key, dropped, namespace }
 }

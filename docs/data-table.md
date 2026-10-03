@@ -85,6 +85,8 @@ export const orderColumns = helper.columns([
 | `DataTable.ColumnToggle`  | "Columns": a menu with a checkbox per data column (labels from `meta.label`) that stays open while toggling, then "Reset to default". See [Column visibility](#column-visibility).                                                                                                                |
 | `DataTable.Export`        | CSV of the visible columns: the current page, or (with a selection) a menu with "Export selected (n)". See [Export](#export).                                                                                                                                                                     |
 | `DataTable.BulkBar`       | A render prop, `{(selection) => actions}`, shown only while rows are selected: "{n} selected", the actions, and Clear. See [The bulk bar](#the-bulk-bar).                                                                                                                                         |
+| `DataTable.Filters`       | One filter pill per column with `meta.filter`, then "Clear all", plus a notice when the link carried invalid filters. See [Filters](#filters).                                                                                                                                                    |
+| `DataTable.SavedViews`    | "Views": built-in presets and the user's own views, stored URL queries. See [Saved views](#saved-views).                                                                                                                                                                                         |
 | `DataTable.KeyboardHelp`  | An icon button ("Keyboard shortcuts") and a dialog listing every grid shortcut, generated from `keymap.ts`; **?** in the grid opens it too. See [keyboard-grid.md](keyboard-grid.md#keyboard-help).                                                                                               |
 
 ## Column meta reference
@@ -98,7 +100,7 @@ export const orderColumns = helper.columns([
 | `width`     | `{ min: number; ideal?: number; grow?: boolean }` | `{ min: 120 }` | The grid track: `minmax(min, ideal)`, or `minmax(min, 1fr)` when `grow` or no `ideal`. The sum of `min`s is where horizontal scrolling starts.                                                                                                    |
 | `sortField` | `SortField`                                       | none           | Maps the column to the API sort field. Absent means not sortable: the header is plain text.                                                                                                                                                       |
 | `hideable`  | `boolean`                                         | `true`         | `false`: always shown, checked and disabled in the column menu                                                                                                                                                                                    |
-| `filter`    | (Stage 6)                                         |                | Typed placeholder, commented out until filters land                                                                                                                                                                                               |
+| `filter`    | `{ field, type: 'enum', options } \| { field: 'amount', type: 'number' } \| { field: 'createdAt', type: 'date' }` | none | `DataTable.Filters`: makes the column filterable and names the API `FilterField` it writes. Enum options are `{ value, label }`. See [Filters](#filters). |
 | `csv`       | `false \| (row) => value`                         | accessor value | `false` leaves the column out of CSV (the selection column sets it); a function gives the exported value. See [Export](#export).                                                                                                                  |
 | `cellKind`  | `'text' \| 'widget' \| 'composite'`               | `'text'`       | What takes keyboard focus: the cell (text; Enter opens the row), its one control (widget: the checkbox, the ⋯ button), or the cell and then, with Enter, its controls (composite: Customer). See [keyboard-grid.md](keyboard-grid.md#cell-kinds). |
 | `utility`   | `boolean`                                         | `false`        | A utility column (selection, row actions): the header label is for screen readers only, and it isn't listed in the column menu. Set `hideable: false` and `csv: false` with it.                                                                   |
@@ -150,6 +152,27 @@ The grid is `<table>`, `<thead>`, `<tbody>`, `<tr>`, `<th>` and `<td>`, with `di
 - **Scrolling.** The scroll container wraps the table and scrolls both ways; the header is `position: sticky` at its top. Below the sum of the column minimums the table scrolls horizontally inside the card. The caller caps the height with `className`.
 
 The skeleton is the same table: the real header (labels and sort indicators, but not yet buttons) and 8 rows whose bars follow each column's alignment. Nothing shifts when the data arrives.
+
+## Filters
+
+`<DataTable.Filters />` has no props. It renders one pill per column whose meta has a `filter`, in column order, so adding a filter to a table is one line of column meta. `filter.field` is typed as the contract's filter fields, so a column can't claim a filter the API doesn't accept.
+
+- **Inactive:** an outline pill, "Status ⌄". **Active:** an accent-subtle pill with a summary ("Status: Paid, Shipped", "Status: 3 selected", "Amount > $500", "Amount $100–$900", "Created: Last 7 days", "Created: Jan 1 – Mar 31") and a separate × ("Remove Status filter").
+- **Editors** open in a popover named by a heading with the column label. Focus starts on the first control and returns to the pill on close. Enum: a checkbox per option, applied on every toggle (unchecking the last one removes the filter), with Select all / Clear. Number: an operator (is above / is below / is between), one or two amounts, Apply or Enter, with inline validation (required, non-negative, min ≤ max). Date: presets (Today, Last 7 days, Last 30 days, This month, Last month) that apply at once, or a custom range of two native date inputs.
+- **Dates are local calendar days.** Presets are computed from the user's local today and are inclusive at both ends. A range that equals a preset today is summarized by the preset's name.
+- **The URL is the only copy.** Every change is `setParams` with the existing updaters (`upsertFilter`, `removeFilter`, `clearFilters`), with history `push`. The page reset comes from `applyParamsUpdate`, as for any other change. "Clear all" removes the filters only; the sort and the search stay. Because the pills read `params.filters`, any link that sets a filter (the Overview's status donut: `?view=orders&orders.f=status:in:paid`) shows its pill as active, with no extra wiring.
+- **Invalid links.** When the lenient decoder dropped parts of the link (`useListParams().dropped`, passed through the table source), a dismissible notice says "1 invalid filter in the link was ignored". Dismissing it lasts for the page session.
+
+## Saved views
+
+`<DataTable.SavedViews presets={…} />` is the "Views" menu: built-in presets (Orders: [`orderViews.ts`](../src/features/orders/orderViews.ts)) and the user's own views.
+
+**A view is a stored URL query.** It's the canonical encoding of filters, sort, q and page size, never the page (`listParamsKey` with the page held at 1). Applying a view is one `setParams` push that replaces those four and goes back to page 1. Knowing which view you're on is a string compare between the current params' key and each view's key. There is deliberately no new state system: the URL already is the list's state, its canonical encoding already makes equal params equal strings, and a second store of "the current view" could only drift from it. A view link is the same query written into the table's namespace.
+
+- **Presets** come from code, aren't deletable, and may be functions of today: "Needs attention" (pending, created in the last 7 days) is recomputed whenever the menu renders.
+- **User views** live in localStorage under `dtk:views:${tableId}` as `{ id, name, query, createdAt }[]`. Unreadable storage falls back to `[]`. Names are required, at most 40 characters and unique among the user's views (case-insensitive). Each has a ⋯ submenu: Rename, Copy link, Delete (confirmed, danger tone).
+- **The trigger** says "Views" when nothing matches, the view's name when the params match one exactly, and "{name} (edited)" once the params drift from the view the user last applied. That last-applied id is session state (sessionStorage), because "edited" only means something relative to a choice made in this session. When the edited view is a user view, "Save changes to {name}" overwrites its query.
+- "Copy link to this view" copies the current URL. Every view is already a link, since the URL holds the state.
 
 ## Search: the draft and the URL
 

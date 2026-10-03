@@ -4,6 +4,7 @@ export {
   dataColumn,
   dataTableFeatures,
   type DataColumnDef,
+  type DataColumnFilter,
   type DataColumnMeta,
   type DataColumnWidth,
   type DataTableFeatures,
@@ -14,6 +15,25 @@ export { DataTableColumnToggle, type DataTableColumnToggleProps } from './DataTa
 export { DataTableDensityToggle, type DataTableDensityToggleProps } from './DataTableDensityToggle'
 export { DataTableExport, type DataTableExportProps } from './DataTableExport'
 export { buildCsvColumns, selectedRowsForExport } from './exportColumns'
+export { DataTableFilters, type DataTableFiltersProps } from './filters/DataTableFilters'
+export {
+  activeFilter,
+  DATE_PRESETS,
+  datePresetRange,
+  filterableColumns,
+  filterSummary,
+  matchDatePreset,
+  toIsoDay,
+  type DatePresetId,
+  type FilterableColumn,
+} from './filters/filterModel'
+export { DataTableSavedViews, type DataTableSavedViewsProps } from './views/DataTableSavedViews'
+export {
+  viewKeyOf as savedViewKeyOf,
+  viewsStorageKey,
+  type StoredView,
+  type ViewPreset,
+} from './views/savedViews'
 export { DataTableGrid, type DataTableGridProps, type VirtualizeOptions } from './DataTableGrid'
 export { DataTableKeyboardHelp, type DataTableKeyboardHelpProps } from './DataTableKeyboardHelp'
 export {

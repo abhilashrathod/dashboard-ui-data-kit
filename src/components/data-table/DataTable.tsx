@@ -6,11 +6,13 @@ import { DataTableBulkBar } from './DataTableBulkBar'
 import { DataTableColumnToggle } from './DataTableColumnToggle'
 import { DataTableDensityToggle } from './DataTableDensityToggle'
 import { DataTableExport } from './DataTableExport'
+import { DataTableFilters } from './filters/DataTableFilters'
 import { DataTableGrid } from './DataTableGrid'
 import { DataTableKeyboardHelp } from './DataTableKeyboardHelp'
 import { DataTablePagination } from './DataTablePagination'
 import { DataTableSearch } from './DataTableSearch'
 import { DataTableToolbar } from './DataTableToolbar'
+import { DataTableSavedViews } from './views/DataTableSavedViews'
 import type { DataTableModel } from './useDataTable'
 
 /**
@@ -74,6 +76,8 @@ export function DataTable<TData extends RowData>({
 DataTable.Toolbar = DataTableToolbar
 DataTable.ColumnToggle = DataTableColumnToggle
 DataTable.Export = DataTableExport
+DataTable.Filters = DataTableFilters
+DataTable.SavedViews = DataTableSavedViews
 DataTable.BulkBar = DataTableBulkBar
 DataTable.Search = DataTableSearch
 DataTable.DensityToggle = DataTableDensityToggle

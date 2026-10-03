@@ -7,6 +7,7 @@ import { BulkStatusAction } from './BulkStatusAction'
 import { OrderActionsContext, type OrderActions } from './orderActions'
 import { getOrderRowId, orderColumns } from './orderColumns'
 import { OrderDetailsDrawer } from './OrderDetailsDrawer'
+import { ORDER_VIEW_PRESETS } from './orderViews'
 import { useStatusChangeFlow } from './useStatusChangeFlow'
 
 export interface OrdersTableProps {
@@ -107,12 +108,14 @@ function OrdersTableView({ namespace = 'orders', gridClassName }: OrdersTablePro
     <OrderActionsContext value={actions}>
       <DataTable table={table} aria-label="Orders">
         <DataTable.Toolbar>
+          <DataTable.SavedViews presets={ORDER_VIEW_PRESETS} />
           <DataTable.Search />
           <DataTable.ColumnToggle slot="end" />
           <DataTable.Export slot="end" />
           <DataTable.DensityToggle slot="end" />
           <DataTable.KeyboardHelp slot="end" />
         </DataTable.Toolbar>
+        <DataTable.Filters />
         <DataTable.Grid className={gridClassName} />
         <DataTable.Pagination />
         <DataTable.BulkBar>
