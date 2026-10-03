@@ -12,7 +12,7 @@ The kit's data table: server-driven sorting and pagination, search, density, and
 - **Code:** [`src/components/data-table/`](../src/components/data-table/)
 - **Orders columns:** [`src/features/orders/orderColumns.tsx`](../src/features/orders/orderColumns.tsx)
 - **Stories:** Storybook → **Data/DataTable** (live MSW API, with the URL bar and request log in a dev drawer)
-- **Related:** [url-state.md](url-state.md) (where the params come from), [data-states.md](data-states.md) (what `DataState` means)
+- **Related:** [url-state.md](url-state.md) (where the params come from), [data-states.md](data-states.md) (what `DataState` means), [keyboard-grid.md](keyboard-grid.md) (the ARIA grid and its keyboard model)
 
 ## Usage
 
@@ -72,31 +72,32 @@ export const orderColumns = helper.columns([
 
 ### The parts
 
-| Part                      | What it does                                                                                                                                                                                      |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `<DataTable>`             | Provides the table to its parts and renders the card. The card has no horizontal padding, so the grid bleeds to its edges; each part pads itself.                                                 |
-| `DataTable.Toolbar`       | A wrapping row with a start and an end area. Children go to the end with `slot="end"`, or inside `DataTable.Toolbar.End`.                                                                         |
-| `DataTable.Search`        | A `SearchInput` for `params.q`: a local draft, committed 300ms after the last keystroke (or on Enter) with history `replace`. See [Search: the draft and the URL](#search-the-draft-and-the-url). |
-| `DataTable.DensityToggle` | Comfortable / compact, as a labelled radiogroup of native radios. Density is a device preference (`setDensity`: localStorage and `<html data-density>`), not list state, so it's not in the URL.  |
-| `DataTable.Grid`          | The table, inside a `DataBoundary`: skeleton, empty, no-results, error, and the refetch bar, stale banner and placeholder dimming over the rows. `className` goes on the scroll container.        |
-| `DataTable.Pagination`    | "Showing 51–100 of 4,213", rows per page (25 / 50 / 100 / 500), "Page 2 of 85", previous / next. Each change is a URL push. Hidden when there is nothing to page through.                         |
-| `DataTable.ColumnToggle`  | "Columns": a menu with a checkbox per data column (labels from `meta.label`) that stays open while toggling, then "Reset to default". See [Column visibility](#column-visibility).                |
-| `DataTable.Export`        | CSV of the visible columns: the current page, or (with a selection) a menu with "Export selected (n)". See [Export](#export).                                                                     |
-| `DataTable.BulkBar`       | A render prop, `{(selection) => actions}`, shown only while rows are selected: "{n} selected", the actions, and Clear. See [The bulk bar](#the-bulk-bar).                                         |
+| Part                      | What it does                                                                                                                                                                                                                                                                                      |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `<DataTable>`             | Provides the table to its parts and renders the card. The card has no horizontal padding, so the grid bleeds to its edges; each part pads itself.                                                                                                                                                 |
+| `DataTable.Toolbar`       | A wrapping row with a start and an end area. Children go to the end with `slot="end"`, or inside `DataTable.Toolbar.End`.                                                                                                                                                                         |
+| `DataTable.Search`        | A `SearchInput` for `params.q`: a local draft, committed 300ms after the last keystroke (or on Enter) with history `replace`. See [Search: the draft and the URL](#search-the-draft-and-the-url).                                                                                                 |
+| `DataTable.DensityToggle` | Comfortable / compact, as a labelled radiogroup of native radios. Density is a device preference (`setDensity`: localStorage and `<html data-density>`), not list state, so it's not in the URL.                                                                                                  |
+| `DataTable.Grid`          | The table, inside a `DataBoundary`: skeleton, empty, no-results, error, and the refetch bar, stale banner and placeholder dimming over the rows. `className` goes on the scroll container. Once there are rows it's an ARIA grid with keyboard navigation ([keyboard-grid.md](keyboard-grid.md)). |
+| `DataTable.Pagination`    | "Showing 51–100 of 4,213", rows per page (25 / 50 / 100 / 500), "Page 2 of 85", previous / next. Each change is a URL push. Hidden when there is nothing to page through.                                                                                                                         |
+| `DataTable.ColumnToggle`  | "Columns": a menu with a checkbox per data column (labels from `meta.label`) that stays open while toggling, then "Reset to default". See [Column visibility](#column-visibility).                                                                                                                |
+| `DataTable.Export`        | CSV of the visible columns: the current page, or (with a selection) a menu with "Export selected (n)". See [Export](#export).                                                                                                                                                                     |
+| `DataTable.BulkBar`       | A render prop, `{(selection) => actions}`, shown only while rows are selected: "{n} selected", the actions, and Clear. See [The bulk bar](#the-bulk-bar).                                                                                                                                         |
 
 ## Column meta reference
 
 `DataColumnMeta` augments TanStack's `ColumnMeta` (declaration merging in [`columns.ts`](../src/components/data-table/columns.ts)), so `column.columnDef.meta` is typed everywhere, including inside TanStack's own types.
 
-| Field       | Type                                              | Default        | Read by                                                                                                                                        |
-| ----------- | ------------------------------------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `label`     | `string` (**required**)                           |                | Header text, sort button name, announcements, the column toggle; CSV headers (4c)                                                              |
-| `align`     | `'start' \| 'end'`                                | `'start'`      | Header and cells (numbers are end-aligned so digits line up), skeleton bars                                                                    |
-| `width`     | `{ min: number; ideal?: number; grow?: boolean }` | `{ min: 120 }` | The grid track: `minmax(min, ideal)`, or `minmax(min, 1fr)` when `grow` or no `ideal`. The sum of `min`s is where horizontal scrolling starts. |
-| `sortField` | `SortField`                                       | none           | Maps the column to the API sort field. Absent means not sortable: the header is plain text.                                                    |
-| `hideable`  | `boolean`                                         | `true`         | `false`: always shown, checked and disabled in the column menu                                                                                 |
-| `filter`    | (Stage 6)                                         |                | Typed placeholder, commented out until filters land                                                                                            |
-| `csv`       | `false` (placeholder)                             |                | `false` leaves the column out of CSV (the selection column sets it). 4c widens it to an object for exported columns.                           |
+| Field       | Type                                              | Default        | Read by                                                                                                                                                 |
+| ----------- | ------------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `label`     | `string` (**required**)                           |                | Header text, sort button name, announcements, the column toggle; CSV headers (4c)                                                                       |
+| `align`     | `'start' \| 'end'`                                | `'start'`      | Header and cells (numbers are end-aligned so digits line up), skeleton bars                                                                             |
+| `width`     | `{ min: number; ideal?: number; grow?: boolean }` | `{ min: 120 }` | The grid track: `minmax(min, ideal)`, or `minmax(min, 1fr)` when `grow` or no `ideal`. The sum of `min`s is where horizontal scrolling starts.          |
+| `sortField` | `SortField`                                       | none           | Maps the column to the API sort field. Absent means not sortable: the header is plain text.                                                             |
+| `hideable`  | `boolean`                                         | `true`         | `false`: always shown, checked and disabled in the column menu                                                                                          |
+| `filter`    | (Stage 6)                                         |                | Typed placeholder, commented out until filters land                                                                                                     |
+| `csv`       | `false \| (row) => value`                         | accessor value | `false` leaves the column out of CSV (the selection column sets it); a function gives the exported value. See [Export](#export).                        |
+| `cellKind`  | `'text' \| 'widget' \| 'composite'`               | `'text'`       | What takes keyboard focus: the cell, or its one control (`'widget'`, e.g. the selection checkbox). See [keyboard-grid.md](keyboard-grid.md#cell-kinds). |
 
 `sortField` is typed as the contract's `SortField`, so a column can't claim to sort by a field the API doesn't support.
 
@@ -139,7 +140,7 @@ Registered features: `rowSortingFeature`, `rowPaginationFeature` and `columnVisi
 
 The grid is `<table>`, `<thead>`, `<tbody>`, `<tr>`, `<th>` and `<td>`, with `display: grid` on the table, the row groups and every row, and one shared `grid-template-columns` (a CSS variable built from the columns' `meta.width`).
 
-- **Real table semantics.** Screen readers announce rows and columns, header association works, and `aria-sort` sits on a real column header. A `div` grid would have to recreate all of that with ARIA. The roles are also stated explicitly (`role="table"`, `row`, `cell`…), because some browsers drop a table's implicit semantics when its `display` changes.
+- **Real table semantics.** Screen readers announce rows and columns, header association works, and `aria-sort` sits on a real column header. A `div` grid would have to recreate all of that with ARIA. The roles are also stated explicitly, because some browsers drop a table's implicit semantics when its `display` changes. Since 5a the live table is `role="grid"` (`row`, `columnheader`, `gridcell`, with page-global `aria-rowindex`); the loading skeleton is a plain table hidden from assistive tech. See [keyboard-grid.md](keyboard-grid.md#grid-semantics).
 - **Rows are independent grid lines.** Each `<tr>` lays itself out from the shared template, so Stage 5 can virtualize (render a window of rows, absolutely positioned) without changing the markup or the column logic. A classic `display: table` layout sizes columns from all rows' content, which virtualization breaks.
 - **Content-independent widths.** `minmax(min px, ideal px | 1fr)` doesn't depend on cell content, so columns don't jump as pages change.
 - **Scrolling.** The scroll container wraps the table and scrolls both ways; the header is `position: sticky` at its top. Below the sum of the column minimums the table scrolls horizontally inside the card. The caller caps the height with `className`.
@@ -208,11 +209,11 @@ Paging through a result set to pick rows is the point of a cross-page selection.
 
 The clear is **derived during render**, not synced in an effect. The selection state remembers the view key it was made under; when the current key differs, `useSelection` resets it in the same render (React's "storing information from previous renders" pattern). No render ever shows the old selection against the new view, and it can't loop: after the reset the keys are equal. It doesn't matter what changed the view (a header click, Clear filters, Back, a pasted link), because it keys off the result, not the cause.
 
-While a placeholder page is shown (the previous key's rows, dimmed), the row checkboxes are disabled: those rows may belong to the previous view.
+While a placeholder page is shown (the previous key's rows, dimmed), the row checkboxes are unavailable: those rows may belong to the previous view. They're `aria-disabled` rather than `disabled`, so they stay focusable: in the grid's roving tabindex the active cell's checkbox can be the grid's only Tab stop ([keyboard-grid.md](keyboard-grid.md#disabled-controls-stay-focusable)).
 
 ### Range select
 
-Shift+click on a row checkbox applies the clicked row's new state to every row between it and the last clicked row, on the current page: shift-clicking an unselected row selects the range, shift-clicking a selected one deselects it. It works in both directions. The anchor is per page, so after a page change a shift+click is a plain toggle (which sets a new anchor). Shift+Space on a focused checkbox does the same for keyboard users.
+Shift+click on a row checkbox applies the clicked row's new state to every row between it and the last clicked row, on the current page: shift-clicking an unselected row selects the range, shift-clicking a selected one deselects it. It works in both directions. The anchor is per page, so after a page change a shift+click is a plain toggle (which sets a new anchor). Shift+Space on a focused checkbox does the same for keyboard users, and so does Shift+Space anywhere in a row once the grid has focus (Space toggles a row, Ctrl/Cmd+A the page: see [keyboard-grid.md](keyboard-grid.md#keyboard-map)).
 
 ### The 500 cap
 
@@ -222,7 +223,7 @@ The bulk endpoint accepts at most 500 ids (`BULK_STATUS_MAX_IDS`, in the contrac
 
 ### Styling
 
-Selected rows get `data-selected`: the accent tint (`bg-accent-subtle`, contrast-tested with `fg` and `fg-muted` in both themes) and a 3px accent bar on the left edge (an inset shadow, so it takes no layout space). The checkbox carries the selected state for assistive tech; Stage 5's `grid` role adds `aria-selected` on the row.
+Selected rows get `data-selected`: the accent tint (`bg-accent-subtle`, contrast-tested with `fg` and `fg-muted` in both themes) and a 3px accent bar on the left edge (an inset shadow, so it takes no layout space). Rows also carry `aria-selected="true|false"` (and the grid `aria-multiselectable`), so a screen reader announces the state from any cell in the row, not only from the checkbox.
 
 ## The bulk bar
 
@@ -273,4 +274,5 @@ The pieces: [`toCsv`](../src/lib/csv/toCsv.ts) is pure (no DOM, no BOM) and full
 - **Unit** ([`__tests__/`](../src/components/data-table/__tests__/)): sorting derivation and the `onSortingChange` → `setSort` mapping, pagination math (partial last page, total 0), header `aria-sort` and button names, the escape hatch writing the URL, the search draft (debounce with fake timers, Enter, outside changes, no reset loop), announcements, and the type-level checks (`dataColumn` requires a label; the root has exactly three props).
 - **Selection and visibility (unit):** the pure model (toggle, ranges in both directions, deselecting ranges, the per-page anchor, selectPage / clearPage, remove, the header state), the scope rules through the real hook and URL (kept across pages and sizes, cleared on sort / q / filters and on Back to another view, kept across refetches), `useColumnVisibility` (persistence, bad JSON, unknown ids, non-hideable, the last-visible guard), and `summarizeBulkResult` (all / partial / none, plurals).
 - **Export (unit):** `toCsv` quoting (comma, quote, CR, LF, a mix), the formula guard (and its numeric exemption), Unicode, null / undefined, CRLF and the final line ending; `buildCsvColumns` (visibility, order, `csv: false`, `csv` over the accessor); the selected-row order; `exportFilename`; and `downloadCsv` (the BOM bytes, the link, the object URL revoked on the next tick).
+- **Keyboard (5a):** see [keyboard-grid.md](keyboard-grid.md#testing): the table-driven `gridNav` / `toNavKey` tests, active-cell persistence, the roving tabindex invariant, the ≤ 2 rows per move render count, and a keyboard-only story.
 - **Stories** (real Chromium, MSW, axe in both themes and densities): the sort cycle with `aria-sort` and the announcement, Next page served from the prefetch cache (no new request in the log), search with at most one history entry, Back restoring sort and search, Clear filters, page size 100, and the narrow container's horizontal scroll with a sticky header. For 4b: the header checkbox (mixed state), shift+click, selection across pages and cleared by a sort, Escape in the bar, a partial bulk success (toast, details, failed rows still selected), a failed bulk request (inline error, dialog open), and columns hidden, persisted across a remount, reset, and the last one locked. The axe check also runs with the column menu open, the dialogs open and the bar visible. For 4c: the exported Blob (captured from `URL.createObjectURL`) has the BOM, the visible columns as its header, 50 rows and CRLF only; hiding Channel removes it; a 5-row selection across two pages exports exactly those ids; and the toast appears.

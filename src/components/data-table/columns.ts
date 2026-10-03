@@ -18,6 +18,7 @@ import {
   type TableFeatures,
 } from '@tanstack/react-table'
 import type { SortField } from '@/contracts'
+import type { CellKind } from './keyboard/focusTarget'
 
 /**
  * The TanStack features every DataTable registers (v9 makes them explicit).
@@ -68,6 +69,15 @@ export interface DataColumnMeta<TData = any> {
    * selection column). The CSV header is always `label`.
    */
   csv?: false | ((row: TData) => CsvValue)
+  /**
+   * How keyboard focus treats the cell (docs/keyboard-grid.md). Default 'text'.
+   *  - 'text': the cell itself takes focus.
+   *  - 'widget': exactly ONE interactive element inside, which takes focus
+   *    directly; it must spread useFocusTargetProps() (the selection checkbox).
+   *  - 'composite': several interactive elements (5b: Enter/F2 to go in,
+   *    Escape to come out). Until then it behaves like 'text'.
+   */
+  cellKind?: CellKind
   // filter?: DataColumnFilter  (Stage 6: the filter UI and how it maps onto a FilterField)
 }
 

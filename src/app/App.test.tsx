@@ -12,11 +12,11 @@ describe('App', () => {
     renderWithProviders(<App />)
 
     expect(screen.getByRole('heading', { level: 1, name: 'Orders' })).toBeInTheDocument()
-    // Header row + one page of 50. (The skeleton is a table too, so wait for the rows.)
+    // Header row + one page of 50. (The grid role only appears once rows are ready.)
     await waitFor(() =>
-      expect(
-        within(screen.getByRole('table', { name: 'Orders' })).getAllByRole('row'),
-      ).toHaveLength(51),
+      expect(within(screen.getByRole('grid', { name: 'Orders' })).getAllByRole('row')).toHaveLength(
+        51,
+      ),
     )
     expect(screen.getByTestId('data-table-range')).toHaveTextContent('Showing 1–50 of 10,000')
   })
@@ -24,7 +24,7 @@ describe('App', () => {
   it('opens a shared view from the URL', async () => {
     renderWithProviders(<App />, { url: '?orders.page=3&orders.sort=-amount' })
 
-    await screen.findByRole('table', { name: 'Orders' })
+    await screen.findByRole('grid', { name: 'Orders' })
     expect(screen.getByRole('columnheader', { name: /^Amount/ })).toHaveAttribute(
       'aria-sort',
       'descending',

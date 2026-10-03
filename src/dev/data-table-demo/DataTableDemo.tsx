@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { ChevronDown, RefreshCw, RotateCw } from 'lucide-react'
-import { useLayoutEffect, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { Button } from '@/components'
 import { OrdersTable } from '@/features/orders/OrdersTable'
 import { queryKeys } from '@/lib/query'
@@ -9,11 +9,14 @@ import { worker } from '@/mocks/browser'
 import { UrlBar } from '../UrlBar'
 import { createBrowserRequestLog } from '../url-query-demo/browserRequestLog'
 import { RequestLogPanel } from '../url-query-demo/RequestLogPanel'
+import { FocusTrace } from './FocusTrace'
 
 export interface DataTableDemoProps {
   /** Constrains the table's container, e.g. 375 for a phone-width story. */
   width?: number
   gridClassName?: string
+  /** Shows the keyboard focus trace (active cell, aria-rowindex, last key) above the table. */
+  focusTrace?: boolean
 }
 
 /**
@@ -22,13 +25,18 @@ export interface DataTableDemoProps {
  * live request log, a Refetch button for forcing a background refresh, and
  * Remount table (a stand-in for reloading the page).
  */
-export function DataTableDemo({ width, gridClassName = 'max-h-[34rem]' }: DataTableDemoProps) {
+export function DataTableDemo({
+  width,
+  gridClassName = 'max-h-[34rem]',
+  focusTrace = false,
+}: DataTableDemoProps) {
   const { key } = useListParams('orders')
   const queryClient = useQueryClient()
   const [log] = useState(() => createBrowserRequestLog(worker))
   // Bumping the key remounts the table, which is what a reload does to it:
   // local state (selection) is gone, stored preferences (columns) are re-read.
   const [mount, setMount] = useState(0)
+  const tableRef = useRef<HTMLDivElement>(null)
 
   // Layout effects run before passive ones, so the log records the first request.
   useLayoutEffect(() => log.start(), [log])
@@ -36,7 +44,8 @@ export function DataTableDemo({ width, gridClassName = 'max-h-[34rem]' }: DataTa
 
   return (
     <div className="flex max-w-6xl flex-col gap-4">
-      <div style={width ? { width } : undefined} className="max-w-full">
+      {focusTrace ? <FocusTrace scope={tableRef} /> : null}
+      <div ref={tableRef} style={width ? { width } : undefined} className="max-w-full">
         <OrdersTable key={mount} gridClassName={gridClassName} />
       </div>
       <details open className="group">

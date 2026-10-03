@@ -10,7 +10,7 @@ export const checkboxVariants = cva([
   'transition-colors duration-(--duration-fast) ease-standard focus-ring',
   'hover-enabled:border-fg',
   'checked:border-ink checked:bg-ink indeterminate:border-ink indeterminate:bg-ink',
-  'disabled:cursor-not-allowed',
+  'disabled:cursor-not-allowed aria-disabled:cursor-not-allowed',
 ])
 
 /** Either a visible label, or an aria-label / aria-labelledby. */
@@ -54,6 +54,8 @@ export function Checkbox({
       className={cn(
         'inline-flex items-center gap-2 text-base text-fg',
         'has-disabled:cursor-not-allowed has-disabled:opacity-50',
+        // aria-disabled: unavailable but still focusable (e.g. in a data grid's tab order).
+        'has-aria-disabled:cursor-not-allowed has-aria-disabled:opacity-50',
         className,
       )}
     >

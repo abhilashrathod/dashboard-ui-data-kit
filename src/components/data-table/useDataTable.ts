@@ -13,7 +13,16 @@ import type { Page } from '@/contracts'
 import type { DataState } from '@/lib/data-state'
 import { setPage, setPageSize, type UseListParamsResult } from '@/lib/url-state'
 import { dataTableFeatures, type DataColumnDef, type DataTableFeatures } from './columns'
+import {
+  effectiveActiveCell,
+  INITIAL_ACTIVE,
+  listKeyOf,
+  rekeyActiveCell,
+  type StoredActiveCell,
+} from './keyboard/activeCell'
+import type { Pos } from './keyboard/gridNav'
 import { pageRange, sortingFromParams, sortUpdaterFor } from './model'
+import { viewKeyOf } from './selection'
 import { selectionColumn } from './selectionColumn'
 import { useColumnVisibility, type ColumnVisibility } from './useColumnVisibility'
 import { useSelection, type DataTableSelection } from './useSelection'
@@ -62,6 +71,14 @@ export interface DataTableModel<TData extends RowData> extends DataTableSource<T
   /** Rows matching the params; the last known value while a new key loads. */
   total: number
   pageCount: number
+  /**
+   * The grid's active cell (keyboard focus position): row -1 is the header,
+   * columns count visible columns only. Already clamped to the grid on screen.
+   * See docs/keyboard-grid.md.
+   */
+  activeCell: Pos
+  /** Moves the active cell. Doesn't move focus; DataTable.Grid does that for user moves. */
+  setActiveCell: (pos: Pos) => void
 }
 
 /** Module scope, so a non-ready state doesn't hand TanStack a new array each render. */
@@ -152,6 +169,32 @@ export function useDataTable<TData extends RowData>({
   })
 
   const { pageCount } = pageRange({ page: params.page, pageSize: params.pageSize, total })
+  const rows = instance.getRowModel().rows
+
+  /*
+   * The active cell: local UI state, like the selection. A new page or view
+   * resets the row to 0 (keeping the column); that reset is derived during
+   * render, the same pattern as the selection's view-key clear. Clamping to
+   * the rows and columns on screen is read-side only (keyboard/activeCell.ts).
+   */
+  const listKey = listKeyOf(viewKeyOf(params), params.page, params.pageSize)
+  const [storedActive, setStoredActive] = useState<StoredActiveCell>(() => ({
+    pos: INITIAL_ACTIVE,
+    listKey,
+  }))
+  const currentActive = rekeyActiveCell(storedActive, listKey)
+  if (currentActive !== storedActive) setStoredActive(currentActive)
+  const activeCell = effectiveActiveCell(currentActive, {
+    rowCount: rows.length,
+    colCount: instance.getVisibleLeafColumns().length,
+  })
+  const setActiveCell = useCallback(
+    (pos: Pos) =>
+      setStoredActive((state) =>
+        state.pos.row === pos.row && state.pos.col === pos.col ? state : { ...state, pos },
+      ),
+    [setStoredActive],
+  )
 
   return {
     id,
@@ -165,8 +208,10 @@ export function useDataTable<TData extends RowData>({
     selection,
     selectable,
     getRowLabel,
-    rows: instance.getRowModel().rows,
+    rows,
     total,
     pageCount,
+    activeCell,
+    setActiveCell,
   }
 }

@@ -250,6 +250,17 @@
   }
 }
 
+/*
+ * The same ring drawn INSIDE the element, for data grid cells: an outer ring on
+ * a cell at the edge of a scroll container would be clipped by it.
+ */
+@utility focus-ring-inset {
+  &:focus-visible {
+    outline: var(--focus-ring-width) solid var(--color-focus-ring);
+    outline-offset: calc(var(--focus-ring-width) * -1);
+  }
+}
+
 /* The focus ring on a wrapper (e.g. the Input pill) when its own <input> has keyboard focus. */
 @utility focus-ring-within {
   &:has(> :is(input, textarea, select):focus-visible) {

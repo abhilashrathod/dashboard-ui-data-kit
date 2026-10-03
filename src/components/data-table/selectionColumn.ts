@@ -12,6 +12,13 @@ export const SELECTION_COLUMN_ID = 'select'
 export const selectionColumn: DataColumnDef<RowData> = {
   id: SELECTION_COLUMN_ID,
   header: () => createElement(SelectPageCheckbox),
-  cell: ({ row }) => createElement(SelectRowCheckbox, { id: row.id }),
-  meta: { label: 'Select', hideable: false, csv: false, width: { min: 64, ideal: 64 } },
+  cell: ({ row }) => createElement(SelectRowCheckbox, { id: row.id, row: row.original }),
+  meta: {
+    label: 'Select',
+    hideable: false,
+    csv: false,
+    width: { min: 64, ideal: 64 },
+    // The checkbox takes focus itself, in the header and in every row.
+    cellKind: 'widget',
+  },
 }

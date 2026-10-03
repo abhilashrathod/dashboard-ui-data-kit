@@ -39,7 +39,7 @@ const meta = preview.meta({
 
 const TIMEOUT = { timeout: 8000 }
 const body = () => within(document.body)
-const table = () => body().getByRole('table', { name: 'Orders' })
+const table = () => body().getByRole('grid', { name: 'Orders' })
 const bodyRows = () => within(table()).getAllByRole('row').slice(1)
 const header = (name: string) =>
   within(table()).getByRole('columnheader', { name: new RegExp(`^${name}`) })

@@ -147,8 +147,15 @@ describe('selection scope', () => {
     renderWithProviders(
       <TableHarness selectable dataState={{ ...readyPage(120), isPlaceholder: true } as never} />,
     )
-    expect(screen.getByRole('checkbox', { name: 'Select order ORD-000001' })).toBeDisabled()
-    expect(screen.getByRole('checkbox', { name: 'Select all orders on this page' })).toBeDisabled()
+    // aria-disabled, not disabled: still focusable, so the grid keeps its Tab stop.
+    const rowBox = screen.getByRole('checkbox', { name: 'Select order ORD-000001' })
+    const pageBox = screen.getByRole('checkbox', { name: 'Select all orders on this page' })
+    expect(rowBox).toHaveAttribute('aria-disabled', 'true')
+    expect(pageBox).toHaveAttribute('aria-disabled', 'true')
+    fireEvent.click(rowBox)
+    expect(rowBox).not.toBeChecked()
+    fireEvent.click(pageBox)
+    expect(pageBox).not.toBeChecked()
   })
 })
 
