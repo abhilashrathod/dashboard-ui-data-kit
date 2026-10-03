@@ -4,18 +4,18 @@ A documented React kit for data-heavy dashboards: server-driven tables, URL-sync
 
 ![Overview](docs/screenshots/overview-light.png)
 
-**[Live demo](DEMO_URL)** · **[Storybook](STORYBOOK_URL)** · **[Loom walkthrough](LOOM_URL)**
+**[Live demo]([DEMO_URL](https://dashboard-kit-demo-puce.vercel.app/))** · **[Storybook](STORYBOOK_URL)** · **[Loom walkthrough](LOOM_URL)**
 
 The mock API runs in the browser (MSW). No backend is needed.
 
 ## Try it in 60 seconds
 
-- **Overview → Orders.** On the [Overview](DEMO_URL/), click a status in the donut. You land on Orders with that status already filtered, in one Back step.
-- **Share a view.** Open [paid orders over $1,000, largest first](DEMO_URL/?view=orders&orders.f=status:in:paid&orders.f=amount:gt:1000&orders.sort=-amount). Refresh it, or paste it in another tab. The same table comes back.
-- **Break one widget.** Open **Demo** in the top bar and break only the KPIs, or open [`?fail=metrics.kpis`](DEMO_URL/?fail=metrics.kpis). The KPIs fail with a Retry; the chart and table keep working.
-- **Slow network.** Open [Orders on a slow network](DEMO_URL/?view=orders&network=slow) and page through it. The old rows stay on screen (dimmed) until the next page lands. There's no skeleton flash.
-- **Server validation.** On [Orders](DEMO_URL/?view=orders), click **New order**, then **Use an existing reference (demo)**, then submit. The server's duplicate check comes back as an inline error on the Reference field.
-- **Keyboard only.** On [Orders](DEMO_URL/?view=orders), Tab into the table. Use the arrow keys to move, Space to select, and Enter to open an order. Press **?** for every shortcut.
+- **Overview → Orders.** On the [Overview]([DEMO_URL](https://dashboard-kit-demo-puce.vercel.app/)/), click a status in the donut. You land on Orders with that status already filtered, in one Back step.
+- **Share a view.** Open [paid orders over $1,000, largest first]([DEMO_URL](https://dashboard-kit-demo-puce.vercel.app/)/?view=orders&orders.f=status:in:paid&orders.f=amount:gt:1000&orders.sort=-amount). Refresh it, or paste it in another tab. The same table comes back.
+- **Break one widget.** Open **Demo** in the top bar and break only the KPIs, or open [`?fail=metrics.kpis`]([DEMO_URL](https://dashboard-kit-demo-puce.vercel.app/)/?fail=metrics.kpis). The KPIs fail with a Retry; the chart and table keep working.
+- **Slow network.** Open [Orders on a slow network]([DEMO_URL](https://dashboard-kit-demo-puce.vercel.app/)/?view=orders&network=slow) and page through it. The old rows stay on screen (dimmed) until the next page lands. There's no skeleton flash.
+- **Server validation.** On [Orders]([DEMO_URL](https://dashboard-kit-demo-puce.vercel.app/)/?view=orders), click **New order**, then **Use an existing reference (demo)**, then submit. The server's duplicate check comes back as an inline error on the Reference field.
+- **Keyboard only.** On [Orders]([DEMO_URL](https://dashboard-kit-demo-puce.vercel.app/)/?view=orders), Tab into the table. Use the arrow keys to move, Space to select, and Enter to open an order. Press **?** for every shortcut.
 
 | Dark mode                                             | Server error on a field                                                        |
 | ----------------------------------------------------- | ------------------------------------------------------------------------------ |
@@ -85,7 +85,7 @@ Every client admin panel needs the same hard parts: big tables, filters that sur
 
 **My answer:** The URL is the only copy of list state. Components read it through `useSyncExternalStore` and write it from event handlers; the table's sort and paging are derived from it on every render, never copied. The query key is the canonical encoding of the params, so a reordered link hits the same cache entry, and the layer's one layout effect only rewrites a messy URL to that spelling, once, with `replace`. Filters `push` history, typing `replace`s it, stale requests are cancelled and the next page is prefetched.
 
-**See it:** [shared link](DEMO_URL/?view=orders&orders.f=status:in:paid&orders.f=amount:gt:1000&orders.sort=-amount) · Storybook → [Data/URL ↔ Query](STORYBOOK_URL/?path=/story/data-url-query--default) (live request log) · [docs/url-state.md](docs/url-state.md)
+**See it:** [shared link]([DEMO_URL](https://dashboard-kit-demo-puce.vercel.app/)/?view=orders&orders.f=status:in:paid&orders.f=amount:gt:1000&orders.sort=-amount) · Storybook → [Data/URL ↔ Query](STORYBOOK_URL/?path=/story/data-url-query--default) (live request log) · [docs/url-state.md](docs/url-state.md)
 
 ![Orders filtered by status and amount, with the filters in the URL](docs/screenshots/orders-filters.png)
 
@@ -127,7 +127,7 @@ const table = useDataTable({ id: 'orders', columns: orderColumns, source, select
 | `error`      | The request failed, nothing to show | The cause, **Retry**, the request ID                       |
 | `ready`      | Data to show                        | Data, plus refetch bar / dimmed placeholder / stale banner |
 
-**See it:** [KPIs failing](DEMO_URL/?fail=metrics.kpis) · Storybook → [Data/States in practice → Partial Failure](STORYBOOK_URL/?path=/story/data-states-in-practice--partial-failure) · [docs/data-states.md](docs/data-states.md)
+**See it:** [KPIs failing]([DEMO_URL](https://dashboard-kit-demo-puce.vercel.app/)/?fail=metrics.kpis) · Storybook → [Data/States in practice → Partial Failure](STORYBOOK_URL/?path=/story/data-states-in-practice--partial-failure) · [docs/data-states.md](docs/data-states.md)
 
 ![The KPI cards in an error state while the chart and table still work](docs/screenshots/partial-failure.png)
 
@@ -149,7 +149,7 @@ const table = useDataTable({ id: 'orders', columns: orderColumns, source, select
 | Esc / F2                  | Step back out of a cell's controls                                             |
 | ?                         | Show every shortcut                                                            |
 
-**See it:** [Orders](DEMO_URL/?view=orders) · Storybook → [Data/DataTable/Keyboard → Keyboard Only](STORYBOOK_URL/?path=/story/data-datatable-keyboard--keyboard-only) · [docs/keyboard-grid.md](docs/keyboard-grid.md)
+**See it:** [Orders]([DEMO_URL](https://dashboard-kit-demo-puce.vercel.app/)/?view=orders) · Storybook → [Data/DataTable/Keyboard → Keyboard Only](STORYBOOK_URL/?path=/story/data-datatable-keyboard--keyboard-only) · [docs/keyboard-grid.md](docs/keyboard-grid.md)
 
 ![Keyboard focus on a grid cell, with the active row tinted](docs/screenshots/keyboard-focus.png)
 
